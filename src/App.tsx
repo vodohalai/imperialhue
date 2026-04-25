@@ -20,6 +20,7 @@ import About from "./pages/About";
 import Amenities from "./pages/Amenities";
 import Availability from "./pages/Availability";
 import Booking from "./pages/Booking";
+import DebugArticles from "./pages/DebugArticles";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/Login";
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/explore/:slug" element={<ExploreDetail />} />
             <Route path="/about" element={<About />} />
             <Route path="/amenities" element={<Amenities />} />
+            <Route path="/debug-articles" element={<DebugArticles />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />

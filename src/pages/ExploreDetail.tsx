@@ -6,30 +6,123 @@ import SiteBottomNav from "@/components/SiteBottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Article } from "@/integrations/supabase/types";
+import { createTestArticle } from "@/utils/create-test-article";
 
 const ExploreDetail = () => {
   const { slug } = useParams();
   const { t } = useLanguage();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [creatingTest, setCreatingTest] = useState(false);
 
   useEffect(() => {
     fetchArticle();
   }, [slug]);
 
   const fetchArticle = async () => {
-    const { data } = await supabase
-      .from("articles")
-      .select("*")
-      .eq("slug", slug)
-      .eq("status", "published")
-      .single();
-    setArticle(data);
-    setLoading(false);
+    if (!slug) {
+      setError("Không có slug trong URL");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      console.log("🔍 Fetching article with slug:", slug);
+      
+      const { data, error } = await supabase
+        .from("articles")
+        .select("*")
+        .eq("slug", slug)
+        .eq("status", "published")
+        .single();
+      
+      if (error) {
+        console.error("❌ Supabase error:", error);
+        setError(error.message);
+        return;
+      }
+      
+      console.log("✅ Article found:", data);
+      setArticle(data);
+    } catch (err: any) {
+      console.error("💥 Fetch error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (loading) return <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center">Đang tải...</div>;
-  if (!article) return <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center">Không tìm thấy bài viết</div>;
+  const handleCreateTestArticle = async () => {
+    setCreatingTest(true);
+    try {
+      console.log("🚀 Creating test article...");
+      const result = await createTestArticle();
+      console.log("✅ Test article created:", result);
+      await fetchArticle(); // Refresh the article list
+    } catch (err: any) {
+      console.error("❌ Error creating test article:", err);
+      setError(err.message);
+    } finally {
+      setCreatingTest(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0D9488] mx-auto"></div>
+        <p className="mt-4 text-slate-600">Đang tải bài viết...</p>
+      </div>
+    </div>
+  );
+
+  if (error) {
+    console.error("🚨 Error in ExploreDetail:", error);
+    return (
+      <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-black text-slate-900 mb-4">❌ Lỗi tải bài viết</h1>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <div className="space-y-3">
+            <button 
+              onClick={handleCreateTestArticle}
+              disabled={creatingTest}
+              className="w-full bg-[#0D9488] text-white px-6 py-3 rounded-full font-bold hover:bg-[#0b7a6f] disabled:opacity-50"
+            >
+              {creatingTest ? "Đang tạo bài test..." : "Tạo bài viết test"}
+            </button>
+            <Link to="/explore" className="block w-full text-center text-[#0D9488] font-bold hover:underline">
+              ← Quay lại danh sách bài viết
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="min-h-screen bg-[#fbfaf7] flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-black text-slate-900 mb-4">📝 Không tìm thấy bài viết</h1>
+          <p className="text-slate-600 mb-6">Bài viết bạn tìm kiếm không tồn tại hoặc chưa được xuất bản.</p>
+          <div className="space-y-3">
+            <button 
+              onClick={handleCreateTestArticle}
+              disabled={creatingTest}
+              className="w-full bg-[#0D9488] text-white px-6 py-3 rounded-full font-bold hover:bg-[#0b7a6f] disabled:opacity-50"
+            >
+              {creatingTest ? "Đang tạo bài test..." : "Tạo bài viết test"}
+            </button>
+            <Link to="/explore" className="block w-full text-center text-[#0D9488] font-bold hover:underline">
+              ← Quay lại danh sách bài viết
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
