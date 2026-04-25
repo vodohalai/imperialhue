@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { LanguageProvider } from "@/i18n/LanguageContext";
+import { BehavioralIntelligence } from "@/components/BehavioralIntelligence";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Rooms from "./pages/Rooms";
@@ -25,6 +26,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <BehavioralIntelligence />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/rooms" element={<Rooms />} />
