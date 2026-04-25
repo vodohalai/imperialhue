@@ -22,41 +22,52 @@ import {
   Mail,
   MapPinned,
   Clock3,
+  ShieldCheck,
+  Wifi,
+  UtensilsCrossed,
+  CarFront,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const rooms = [
   {
     name: "Phòng Superior",
+    slug: "superior",
     price: "1.200.000 VND / đêm",
     image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
     meta: ["2 khách", "22 m²", "1 giường Queen"],
   },
   {
     name: "Phòng Deluxe",
+    slug: "deluxe",
     price: "1.500.000 VND / đêm",
     image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
     meta: ["2 khách", "28 m²", "1 giường King"],
   },
   {
     name: "Phòng Deluxe Balcony",
+    slug: "deluxe-balcony",
     price: "1.700.000 VND / đêm",
     image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
     meta: ["2 khách", "30 m²", "1 giường King"],
   },
   {
     name: "Phòng Premier",
+    slug: "premier",
     price: "1.900.000 VND / đêm",
     image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
     meta: ["2 khách", "32 m²", "1 giường King"],
   },
   {
     name: "Phòng Junior Suite",
+    slug: "junior-suite",
     price: "2.300.000 VND / đêm",
     image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
     meta: ["2 khách", "40 m²", "1 giường King"],
   },
   {
     name: "Phòng Imperial Suite",
+    slug: "imperial-suite",
     price: "3.200.000 VND / đêm",
     image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
     meta: ["2 khách", "55 m²", "1 giường King"],
@@ -78,11 +89,11 @@ const quickActions = [
 ];
 
 const bottomNav = [
-  { icon: Home, label: "Home", active: true, href: "#" },
-  { icon: BedDouble, label: "Rooms", href: "#rooms" },
-  { icon: Ticket, label: "Offers", href: "#offers" },
-  { icon: Images, label: "Gallery", href: "#gallery" },
-  { icon: Phone, label: "Contact", href: "#contact" },
+  { icon: Home, label: "Home", active: true, href: "/" },
+  { icon: BedDouble, label: "Rooms", href: "/rooms" },
+  { icon: Ticket, label: "Offers", href: "/offers" },
+  { icon: Images, label: "Gallery", href: "/explore" },
+  { icon: Phone, label: "Contact", href: "/contact" },
 ];
 
 const Index = () => {
@@ -105,12 +116,12 @@ const Index = () => {
           </div>
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 lg:flex">
-            <a className="text-[#0D9488]" href="#">Trang chủ</a>
+            <a className="text-[#0D9488]" href="#top">Trang chủ</a>
             <a href="#rooms">Phòng nghỉ</a>
             <a href="#amenities">Tiện nghi</a>
             <a href="#offers">Ưu đãi</a>
-            <a href="#gallery">Khám phá Huế</a>
-            <a href="#contact">Liên hệ</a>
+            <a href="/explore">Khám phá Huế</a>
+            <a href="/contact">Liên hệ</a>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -119,9 +130,9 @@ const Index = () => {
               VI
               <ChevronDown className="h-4 w-4" />
             </button>
-            <a href="#contact" className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
+            <Link to="/contact" className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
               Đặt phòng ngay
-            </a>
+            </Link>
             <button className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f97316] text-white lg:hidden">
               <Menu className="h-6 w-6" />
             </button>
@@ -129,7 +140,7 @@ const Index = () => {
         </div>
       </header>
 
-      <main>
+      <main id="top">
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
             <img
@@ -180,13 +191,13 @@ const Index = () => {
               </div>
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <a href="#contact" className="flex-1 rounded-full bg-[#f97316] px-6 py-4 text-center text-base font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
+                <Link to="/contact" className="flex-1 rounded-full bg-[#f97316] px-6 py-4 text-center text-base font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
                   Kiểm tra phòng trống
-                </a>
-                <a href="#rooms" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d9e7e5] bg-white px-6 py-4 text-base font-semibold text-[#0D9488]">
+                </Link>
+                <Link to="/rooms" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d9e7e5] bg-white px-6 py-4 text-base font-semibold text-[#0D9488]">
                   <Search className="h-4 w-4" />
                   Tìm bằng AI
-                </a>
+                </Link>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -229,9 +240,9 @@ const Index = () => {
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">Phòng nghỉ</p>
               <h3 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Không gian lưu trú tinh tế</h3>
             </div>
-            <a href="#contact" className="hidden text-sm font-semibold text-[#0D9488] sm:inline-flex">
+            <Link to="/rooms" className="hidden text-sm font-semibold text-[#0D9488] sm:inline-flex">
               Xem tất cả
-            </a>
+            </Link>
           </div>
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -256,9 +267,9 @@ const Index = () => {
                     ))}
                   </div>
                   <div className="mt-5 flex items-center justify-between">
-                    <a href="#contact" className="text-sm font-semibold text-[#f97316]">
+                    <Link to={`/rooms/${room.slug}`} className="text-sm font-semibold text-[#f97316]">
                       Xem chi tiết
-                    </a>
+                    </Link>
                     <ArrowRight className="h-5 w-5 text-[#f97316]" />
                   </div>
                 </div>
@@ -345,9 +356,9 @@ const Index = () => {
                 </div>
               </div>
 
-              <a href="#contact" className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-sm font-bold text-[#0D9488]">
+              <Link to="/offers" className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-sm font-bold text-[#0D9488]">
                 Khám phá ưu đãi
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -365,11 +376,7 @@ const Index = () => {
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {[
-                "Đại Nội Huế",
-                "Sông Hương - Cầu Trường Tiền",
-                "Ẩm thực cung đình và món Huế",
-              ].map((item) => (
+              {["Đại Nội Huế", "Sông Hương - Cầu Trường Tiền", "Ẩm thực cung đình và món Huế"].map((item) => (
                 <div key={item} className="rounded-[1.5rem] bg-[#fbfaf7] p-5">
                   <p className="text-sm font-semibold text-slate-500">Điểm đến nổi bật</p>
                   <h4 className="mt-2 text-lg font-bold text-slate-900">{item}</h4>
@@ -453,16 +460,16 @@ const Index = () => {
           {bottomNav.map((item) => {
             const Icon = item.icon;
             return (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
+                to={item.href}
                 className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium ${
                   item.active ? "text-[#f97316]" : "text-slate-500"
                 }`}
               >
                 <Icon className="h-5 w-5" />
                 {item.label}
-              </a>
+              </Link>
             );
           })}
         </div>
