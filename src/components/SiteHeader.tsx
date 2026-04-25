@@ -1,17 +1,20 @@
-import { ChevronDown, Globe, Menu } from "lucide-react";
+import { Globe, Menu } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 
-const navLinks = [
-  { label: "Trang chủ", to: "/" },
-  { label: "Phòng nghỉ", to: "/rooms" },
-  { label: "Tiện nghi", to: "/amenities" },
-  { label: "Ưu đãi", to: "/offers" },
-  { label: "Khám phá Huế", to: "/explore" },
-  { label: "Liên hệ", to: "/contact" },
+const navLinks: { key: TranslationKey; to: string }[] = [
+  { key: "nav.home", to: "/" },
+  { key: "nav.rooms", to: "/rooms" },
+  { key: "nav.amenities", to: "/amenities" },
+  { key: "nav.offers", to: "/offers" },
+  { key: "nav.explore", to: "/explore" },
+  { key: "nav.contact", to: "/contact" },
 ];
 
 const SiteHeader = () => {
   const location = useLocation();
+  const { lang, setLang, t } = useLanguage();
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#ece6dd] bg-white/95 backdrop-blur">
@@ -32,20 +35,22 @@ const SiteHeader = () => {
             const isActive = location.pathname === link.to;
             return (
               <Link key={link.to} to={link.to} className={isActive ? "text-[#0D9488]" : "hover:text-[#0D9488]"}>
-                {link.label}
+                {t(link.key)}
               </Link>
             );
           })}
         </nav>
 
         <div className="flex items-center gap-3">
-          <button className="hidden items-center gap-2 rounded-full border border-[#e7e0d6] bg-white px-4 py-2 text-sm font-medium text-slate-600 sm:flex">
+          <button
+            onClick={() => setLang(lang === "vi" ? "en" : "vi")}
+            className="hidden items-center gap-2 rounded-full border border-[#e7e0d6] bg-white px-4 py-2 text-sm font-medium text-slate-600 sm:flex"
+          >
             <Globe className="h-4 w-4" />
-            VI
-            <ChevronDown className="h-4 w-4" />
+            {lang === "vi" ? "VI" : "EN"}
           </button>
           <Link to="/contact" className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
-            Đặt phòng ngay
+            {t("nav.bookNow")}
           </Link>
           <button className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f97316] text-white lg:hidden">
             <Menu className="h-6 w-6" />
