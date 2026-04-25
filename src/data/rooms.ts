@@ -14,8 +14,8 @@ export type Room = {
   shortDescription: string;
   longDescription: string;
   images: string[];
-  amenities: string[];
-  policy: string[];
+  amenities: TranslationKey[];
+  policy: TranslationKey[];
 };
 
 export const rooms: Room[] = [
@@ -41,8 +41,8 @@ export const rooms: Room[] = [
       "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng tắm riêng", "Giường cao cấp", "Đỗ xe", "An toàn 24/7"],
-    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+    amenities: ["amen.wifi", "amen.breakfast", "amen.bath", "amen.premiumBed", "amen.parking", "amen.security"],
+    policy: ["pol.checkIn", "pol.checkOut", "pol.cancel48"],
   },
   {
     slug: "deluxe",
@@ -66,8 +66,8 @@ export const rooms: Room[] = [
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng tắm riêng", "Giường King", "Đỗ xe", "Lễ tân 24/7"],
-    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+    amenities: ["amen.wifi", "amen.breakfast", "amen.bath", "amen.kingBed", "amen.parking", "amen.reception"],
+    policy: ["pol.checkIn", "pol.checkOut", "pol.cancel48"],
   },
   {
     slug: "deluxe-balcony",
@@ -91,8 +91,8 @@ export const rooms: Room[] = [
       "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Ban công riêng", "Giường King", "Đỗ xe", "Lễ tân 24/7"],
-    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+    amenities: ["amen.wifi", "amen.breakfast", "amen.balcony", "amen.kingBed", "amen.parking", "amen.reception"],
+    policy: ["pol.checkIn", "pol.checkOut", "pol.cancel48"],
   },
   {
     slug: "premier",
@@ -116,8 +116,8 @@ export const rooms: Room[] = [
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng tắm cao cấp", "Giường King", "Minibar", "Lễ tân 24/7"],
-    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+    amenities: ["amen.wifi", "amen.breakfast", "amen.premiumBath", "amen.kingBed", "amen.minibar", "amen.reception"],
+    policy: ["pol.checkIn", "pol.checkOut", "pol.cancel48"],
   },
   {
     slug: "junior-suite",
@@ -141,8 +141,8 @@ export const rooms: Room[] = [
       "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Khu tiếp khách", "Bồn tắm", "Minibar", "Lễ tân 24/7"],
-    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 72 giờ"],
+    amenities: ["amen.wifi", "amen.breakfast", "amen.lounge", "amen.bathtub", "amen.minibar", "amen.reception"],
+    policy: ["pol.checkIn", "pol.checkOut", "pol.cancel72"],
   },
   {
     slug: "imperial-suite",
@@ -166,8 +166,8 @@ export const rooms: Room[] = [
       "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
       "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
     ],
-    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng khách riêng", "Ban công riêng", "Minibar", "Đưa đón sân bay"],
-    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 72 giờ"],
+    amenities: ["amen.wifi", "amen.breakfast", "amen.livingRoom", "amen.balcony", "amen.minibar", "amen.shuttle"],
+    policy: ["pol.checkIn", "pol.checkOut", "pol.cancel72"],
   },
 ];
 

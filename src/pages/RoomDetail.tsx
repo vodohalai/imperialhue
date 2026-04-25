@@ -106,10 +106,10 @@ const RoomDetail = () => {
               <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-black text-slate-900">{t("detail.amenities")}</h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  {room.amenities.map((item) => (
-                    <div key={item} className="flex items-center gap-3 rounded-2xl bg-[#fbfaf7] p-3 text-sm text-slate-700">
+                  {room.amenities.map((itemKey) => (
+                    <div key={itemKey} className="flex items-center gap-3 rounded-2xl bg-[#fbfaf7] p-3 text-sm text-slate-700">
                       <span className="h-2 w-2 rounded-full bg-[#0D9488]" />
-                      {item}
+                      {t(itemKey)}
                     </div>
                   ))}
                 </div>
@@ -118,10 +118,10 @@ const RoomDetail = () => {
               <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
                 <h2 className="text-xl font-black text-slate-900">{t("detail.policy")}</h2>
                 <ul className="mt-4 space-y-2 text-sm text-slate-700">
-                  {room.policy.map((p) => (
-                    <li key={p} className="flex items-start gap-2">
+                  {room.policy.map((policyKey) => (
+                    <li key={policyKey} className="flex items-start gap-2">
                       <span className="mt-2 h-1.5 w-1.5 rounded-full bg-[#f97316]" />
-                      {p}
+                      {t(policyKey)}
                     </li>
                   ))}
                 </ul>

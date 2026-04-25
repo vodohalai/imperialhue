@@ -69,6 +69,29 @@ const t = {
   "detail.nights": { vi: "đêm", en: "night(s)" },
   "detail.notFound": { vi: "Không tìm thấy phòng", en: "Room Not Found" },
 
+  // Amenities list
+  "amen.wifi": { vi: "Wi-Fi tốc độ cao", en: "High-speed Wi-Fi" },
+  "amen.breakfast": { vi: "Bữa sáng", en: "Breakfast" },
+  "amen.bath": { vi: "Phòng tắm riêng", en: "Private bathroom" },
+  "amen.premiumBed": { vi: "Giường cao cấp", en: "Premium bed" },
+  "amen.parking": { vi: "Đỗ xe", en: "Parking" },
+  "amen.security": { vi: "An toàn 24/7", en: "24/7 Security" },
+  "amen.kingBed": { vi: "Giường King", en: "King bed" },
+  "amen.reception": { vi: "Lễ tân 24/7", en: "24/7 Reception" },
+  "amen.balcony": { vi: "Ban công riêng", en: "Private balcony" },
+  "amen.premiumBath": { vi: "Phòng tắm cao cấp", en: "Premium bathroom" },
+  "amen.minibar": { vi: "Minibar", en: "Minibar" },
+  "amen.lounge": { vi: "Khu tiếp khách", en: "Sitting area" },
+  "amen.bathtub": { vi: "Bồn tắm", en: "Bathtub" },
+  "amen.livingRoom": { vi: "Phòng khách riêng", en: "Private living room" },
+  "amen.shuttle": { vi: "Đưa đón sân bay", en: "Airport transfer" },
+
+  // Policy list
+  "pol.checkIn": { vi: "Nhận phòng 14:00", en: "Check-in 14:00" },
+  "pol.checkOut": { vi: "Trả phòng 12:00", en: "Check-out 12:00" },
+  "pol.cancel48": { vi: "Hủy miễn phí trước 48 giờ", en: "Free cancellation before 48h" },
+  "pol.cancel72": { vi: "Hủy miễn phí trước 72 giờ", en: "Free cancellation before 72h" },
+
   // Booking
   "booking.label": { vi: "Đặt phòng", en: "Booking" },
   "booking.title": { vi: "Hoàn tất thông tin đặt phòng", en: "Complete Your Booking" },
