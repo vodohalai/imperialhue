@@ -1,5 +1,28 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, ChevronDown, CircleHelp, Globe, Menu, MessageCircleMore, Search, Sparkles, Star, BedDouble, MapPin, Waves, Users, Phone, Home, Ticket, Images, HeartHandshake } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  ChevronDown,
+  CircleHelp,
+  Globe,
+  Menu,
+  MessageCircleMore,
+  Search,
+  Sparkles,
+  Star,
+  BedDouble,
+  MapPin,
+  Waves,
+  Users,
+  Phone,
+  Home,
+  Ticket,
+  Images,
+  HeartHandshake,
+  Mail,
+  MapPinned,
+  Clock3,
+} from "lucide-react";
 
 const rooms = [
   {
@@ -55,11 +78,11 @@ const quickActions = [
 ];
 
 const bottomNav = [
-  { icon: Home, label: "Home", active: true },
-  { icon: BedDouble, label: "Rooms" },
-  { icon: Ticket, label: "Offers" },
-  { icon: Images, label: "Gallery" },
-  { icon: Phone, label: "Contact" },
+  { icon: Home, label: "Home", active: true, href: "#" },
+  { icon: BedDouble, label: "Rooms", href: "#rooms" },
+  { icon: Ticket, label: "Offers", href: "#offers" },
+  { icon: Images, label: "Gallery", href: "#gallery" },
+  { icon: Phone, label: "Contact", href: "#contact" },
 ];
 
 const Index = () => {
@@ -83,11 +106,11 @@ const Index = () => {
 
           <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 lg:flex">
             <a className="text-[#0D9488]" href="#">Trang chủ</a>
-            <a href="#">Phòng nghỉ</a>
-            <a href="#">Tiện nghi</a>
-            <a href="#">Ưu đãi</a>
-            <a href="#">Khám phá Huế</a>
-            <a href="#">Liên hệ</a>
+            <a href="#rooms">Phòng nghỉ</a>
+            <a href="#amenities">Tiện nghi</a>
+            <a href="#offers">Ưu đãi</a>
+            <a href="#gallery">Khám phá Huế</a>
+            <a href="#contact">Liên hệ</a>
           </nav>
 
           <div className="flex items-center gap-3">
@@ -96,9 +119,9 @@ const Index = () => {
               VI
               <ChevronDown className="h-4 w-4" />
             </button>
-            <button className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
+            <a href="#contact" className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
               Đặt phòng ngay
-            </button>
+            </a>
             <button className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f97316] text-white lg:hidden">
               <Menu className="h-6 w-6" />
             </button>
@@ -124,9 +147,7 @@ const Index = () => {
                 Chào bạn, bạn đang tìm kiếm một kỳ nghỉ như thế nào?
               </div>
 
-              <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-5xl">
-                The Imperial Hue
-              </h2>
+              <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-5xl">The Imperial Hue</h2>
               <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
                 Không gian nghỉ dưỡng tinh tế, ấm cúng và đậm chất Huế, nơi mỗi chi tiết đều được chăm chút để bạn có một kỳ nghỉ thật trọn vẹn.
               </p>
@@ -159,13 +180,13 @@ const Index = () => {
               </div>
 
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <button className="flex-1 rounded-full bg-[#f97316] px-6 py-4 text-base font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
+                <a href="#contact" className="flex-1 rounded-full bg-[#f97316] px-6 py-4 text-center text-base font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
                   Kiểm tra phòng trống
-                </button>
-                <button className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d9e7e5] bg-white px-6 py-4 text-base font-semibold text-[#0D9488]">
+                </a>
+                <a href="#rooms" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d9e7e5] bg-white px-6 py-4 text-base font-semibold text-[#0D9488]">
                   <Search className="h-4 w-4" />
                   Tìm bằng AI
-                </button>
+                </a>
               </div>
 
               <div className="mt-6 flex flex-wrap gap-3">
@@ -185,7 +206,7 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <section id="amenities" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {features.map((feature) => {
               const Icon = feature.icon;
@@ -202,13 +223,13 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <section id="rooms" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">Phòng nghỉ</p>
               <h3 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Không gian lưu trú tinh tế</h3>
             </div>
-            <a href="#" className="hidden text-sm font-semibold text-[#0D9488] sm:inline-flex">
+            <a href="#contact" className="hidden text-sm font-semibold text-[#0D9488] sm:inline-flex">
               Xem tất cả
             </a>
           </div>
@@ -235,7 +256,7 @@ const Index = () => {
                     ))}
                   </div>
                   <div className="mt-5 flex items-center justify-between">
-                    <a href="#" className="text-sm font-semibold text-[#f97316]">
+                    <a href="#contact" className="text-sm font-semibold text-[#f97316]">
                       Xem chi tiết
                     </a>
                     <ArrowRight className="h-5 w-5 text-[#f97316]" />
@@ -246,7 +267,7 @@ const Index = () => {
           </div>
         </section>
 
-        <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <section id="offers" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="overflow-hidden rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
               <div className="flex items-center gap-3">
@@ -324,9 +345,100 @@ const Index = () => {
                 </div>
               </div>
 
-              <button className="mt-6 w-full rounded-full bg-white px-5 py-4 text-sm font-bold text-[#0D9488]">
+              <a href="#contact" className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-sm font-bold text-[#0D9488]">
                 Khám phá ưu đãi
-              </button>
+              </a>
+            </div>
+          </div>
+        </section>
+
+        <section id="gallery" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0D9488]/10 text-[#0D9488]">
+                <Images className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#f97316]">Khám phá Huế</p>
+                <h3 className="text-2xl font-black text-slate-900">Gợi ý trải nghiệm quanh khách sạn</h3>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-3">
+              {[
+                "Đại Nội Huế",
+                "Sông Hương - Cầu Trường Tiền",
+                "Ẩm thực cung đình và món Huế",
+              ].map((item) => (
+                <div key={item} className="rounded-[1.5rem] bg-[#fbfaf7] p-5">
+                  <p className="text-sm font-semibold text-slate-500">Điểm đến nổi bật</p>
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">{item}</h4>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    Lý tưởng để kết hợp nghỉ dưỡng, khám phá văn hóa và thưởng thức ẩm thực địa phương.
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="contact" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">Liên hệ</p>
+              <h3 className="mt-2 text-2xl font-black text-slate-900">Kết nối với The Imperial Hue</h3>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                Gọi ngay hoặc gửi yêu cầu để đội ngũ lễ tân hỗ trợ bạn nhanh nhất.
+              </p>
+
+              <div className="mt-6 space-y-4">
+                <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
+                  <MapPinned className="mt-0.5 h-5 w-5 text-[#0D9488]" />
+                  <div>
+                    <p className="font-semibold text-slate-900">Địa chỉ</p>
+                    <p className="text-sm text-slate-600">8 Hùng Vương, Phú Nhuận, TP. Huế</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
+                  <Phone className="mt-0.5 h-5 w-5 text-[#0D9488]" />
+                  <div>
+                    <p className="font-semibold text-slate-900">Điện thoại</p>
+                    <p className="text-sm text-slate-600">+84 234 382 1234</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
+                  <Mail className="mt-0.5 h-5 w-5 text-[#0D9488]" />
+                  <div>
+                    <p className="font-semibold text-slate-900">Email</p>
+                    <p className="text-sm text-slate-600">reservations@imperialhue.vn</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
+                  <Clock3 className="mt-0.5 h-5 w-5 text-[#0D9488]" />
+                  <div>
+                    <p className="font-semibold text-slate-900">Giờ hỗ trợ</p>
+                    <p className="text-sm text-slate-600">24/7 cho đặt phòng và tư vấn</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
+              <div className="grid gap-4 md:grid-cols-2">
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Họ và tên" />
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Email" />
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Số điện thoại" />
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Ngày nhận phòng" />
+              </div>
+              <textarea className="mt-4 min-h-32 w-full rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Nội dung yêu cầu của bạn" />
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <button className="rounded-full bg-[#0D9488] px-6 py-3 text-sm font-semibold text-white">
+                  Gửi yêu cầu
+                </button>
+                <a href="tel:+842343821234" className="rounded-full border border-[#d9e7e5] px-6 py-3 text-center text-sm font-semibold text-[#0D9488]">
+                  Gọi ngay
+                </a>
+              </div>
             </div>
           </div>
         </section>
@@ -341,15 +453,16 @@ const Index = () => {
           {bottomNav.map((item) => {
             const Icon = item.icon;
             return (
-              <button
+              <a
                 key={item.label}
+                href={item.href}
                 className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium ${
                   item.active ? "text-[#f97316]" : "text-slate-500"
                 }`}
               >
                 <Icon className="h-5 w-5" />
                 {item.label}
-              </button>
+              </a>
             );
           })}
         </div>
