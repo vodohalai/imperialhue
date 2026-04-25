@@ -1,72 +1,113 @@
-import { useState, useEffect } from 'react';
-import { useBehaviorTracker } from '@/hooks/useBehaviorTracker';
-import { X, Zap, Timer } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Clock, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const BehavioralIntelligence = () => {
-  const { intentScore, recommendation, logEvent } = useBehaviorTracker();
   const [showExitPopup, setShowExitPopup] = useState(false);
   const [hasShown, setHasShown] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30); // 30 seconds countdown
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleMouseOut = (e: MouseEvent) => {
       // Phát hiện di chuyển chuột lên thanh địa chỉ (Exit Intent)
-      // Chỉ kích hoạt nếu người dùng đã có mức độ quan tâm nhất định (score > 30)
-      if (e.clientY <= 5 && !hasShown && intentScore > 30) {
+      // Xuất hiện ngay lập tức không cần AI phân tích điểm
+      if (e.clientY <= 5 && !hasShown) {
         setShowExitPopup(true);
         setHasShown(true);
-        logEvent('exit_intent_detected', { score: intentScore });
+        startTimer();
       }
     };
 
     document.addEventListener('mouseout', handleMouseOut);
     return () => document.removeEventListener('mouseout', handleMouseOut);
-  }, [intentScore, hasShown]);
+  }, [hasShown]);
+
+  const startTimer = () => {
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `\${mins.toString().padStart(2, '0')}:\${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
-    <>
-      {/* Logic Intent Score vẫn chạy ngầm, chỉ gỡ bỏ phần hiển thị Badge ở đây */}
-      
-      <AnimatePresence>
-        {showExitPopup && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-md overflow-hidden rounded-[2.5rem] bg-white p-8 shadow-2xl"
-            >
+    <AnimatePresence>
+      {showExitPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <motion.div 
+            initial={{ y: 50, opacity: 0, scale: 0.95 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 50, opacity: 0, scale: 0.95 }}
+            className="relative w-full max-w-[420px] overflow-hidden rounded-[2rem] bg-white shadow-2xl"
+          >
+            {/* Header: Teal Background */}
+            <div className="bg-[#00b5ad] p-8 text-center text-white">
               <button 
                 onClick={() => setShowExitPopup(false)}
-                className="absolute right-6 top-6 rounded-full bg-slate-100 p-2 text-slate-400 hover:text-slate-600"
+                className="absolute right-4 top-4 text-white/80 hover:text-white"
               >
                 <X className="h-5 w-5" />
               </button>
 
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f97316]/10 text-[#f97316]">
-                <Zap className="h-8 w-8" />
+              <div className="mb-4 flex justify-center">
+                <div className="flex h-12 items-center gap-2 rounded-full bg-black/10 px-4 py-2 text-xs font-bold uppercase tracking-wider">
+                  <Clock className="h-4 w-4" />
+                  Limited Offer
+                </div>
               </div>
 
-              <h3 className="mt-6 text-2xl font-black text-slate-900">Khoan đã! Đừng bỏ lỡ...</h3>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                {recommendation || "The Imperial Hue đang có ưu đãi đặc biệt dành riêng cho phiên truy cập này. Đừng để kỳ nghỉ mơ ước vụt mất!"}
-              </p>
+              <h3 className="text-3xl font-black leading-tight">
+                Wait! We have a <br />
+                <span className="text-yellow-300">special offer</span> for you
+              </h3>
+            </div>
 
-              <div className="mt-6 flex items-center gap-3 rounded-2xl bg-orange-50 p-4">
-                <Timer className="h-5 w-5 text-[#f97316]" />
-                <p className="text-xs font-bold text-[#f97316]">ƯU ĐÃI KẾT THÚC SAU: 10:00</p>
+            {/* Body: White Background */}
+            <div className="p-8">
+              {/* Offer Box */}
+              <div className="rounded-3xl bg-[#fff9f0] p-6 text-center border border-orange-100">
+                <p className="text-sm font-medium text-slate-500">Today's special offer</p>
+                <h4 className="mt-1 text-2xl font-black text-slate-900">15% off all rooms</h4>
+                <p className="mt-1 text-sm text-slate-500">Valid when booking today</p>
               </div>
+
+              {/* Timer */}
+              <div className="mt-8 flex items-center justify-center gap-4">
+                <p className="text-sm font-bold text-slate-600">Offer expires in:</p>
+                <div className="rounded-xl bg-[#1b1c1d] px-4 py-2 font-mono text-xl font-bold text-white shadow-inner">
+                  {formatTime(timeLeft)}
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <button 
+                onClick={() => setShowExitPopup(false)}
+                className="mt-8 flex w-full items-center justify-center gap-2 rounded-full bg-[#ff6b00] py-4 text-lg font-black text-white shadow-lg shadow-orange-200 transition hover:bg-[#e66000] active:scale-[0.98]"
+              >
+                Claim offer now →
+              </button>
 
               <button 
                 onClick={() => setShowExitPopup(false)}
-                className="mt-6 w-full rounded-full bg-[#0D9488] px-6 py-4 text-center text-sm font-bold text-white shadow-lg shadow-teal-200"
+                className="mt-4 w-full text-center text-sm font-semibold text-slate-400 hover:text-slate-600"
               >
-                NHẬN ƯU ĐÃI 15% NGAY
+                No, I don't need this offer
               </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
   );
 };
