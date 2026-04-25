@@ -11,6 +11,7 @@ export const BehavioralIntelligence = () => {
   useEffect(() => {
     const handleMouseOut = (e: MouseEvent) => {
       // Phát hiện di chuyển chuột lên thanh địa chỉ (Exit Intent)
+      // Chỉ kích hoạt nếu người dùng đã có mức độ quan tâm nhất định (score > 30)
       if (e.clientY <= 5 && !hasShown && intentScore > 30) {
         setShowExitPopup(true);
         setHasShown(true);
@@ -24,12 +25,8 @@ export const BehavioralIntelligence = () => {
 
   return (
     <>
-      {/* Dev Intent Score Badge (Dành cho demo) */}
-      <div className="fixed left-4 bottom-20 z-[60] flex items-center gap-2 rounded-full bg-slate-900/80 px-3 py-1 text-[10px] font-bold text-white backdrop-blur">
-        <Zap className="h-3 w-3 text-yellow-400" />
-        INTENT: {intentScore}%
-      </div>
-
+      {/* Logic Intent Score vẫn chạy ngầm, chỉ gỡ bỏ phần hiển thị Badge ở đây */}
+      
       <AnimatePresence>
         {showExitPopup && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
