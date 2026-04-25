@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, BedDouble, CalendarDays, ShieldCheck, Sparkles, Users } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
+import StyledSelect from "@/components/StyledSelect";
 import { getRoomBySlug } from "@/data/rooms";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -19,6 +20,11 @@ const RoomDetail = () => {
   const [checkIn, setCheckIn] = useState(today);
   const [checkOut, setCheckOut] = useState(tomorrow);
   const [guests, setGuests] = useState(2);
+
+  const guestOptions = [1, 2, 3, 4].map((n) => ({
+    value: String(n),
+    label: `${n} ${t("search.guestUnit")}`,
+  }));
 
   if (!room) {
     return (
@@ -141,17 +147,18 @@ const RoomDetail = () => {
                       <input type="date" value={checkOut} min={checkIn} onChange={(e) => setCheckOut(e.target.value)} className="w-full bg-transparent outline-none" />
                     </div>
                   </label>
-                  <label className="block rounded-2xl bg-[#fbfaf7] p-4">
+                  <div className="rounded-2xl bg-[#fbfaf7] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.guests")}</p>
-                    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <Users className="h-4 w-4 text-[#0D9488]" />
-                      <select value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="w-full bg-transparent outline-none">
-                        {[1, 2, 3, 4].map((n) => (
-                          <option key={n} value={n}>{n} {t("search.guestUnit")}</option>
-                        ))}
-                      </select>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Users className="h-4 w-4 shrink-0 text-[#0D9488]" />
+                      <StyledSelect
+                        value={String(guests)}
+                        onChange={(v) => setGuests(Number(v))}
+                        options={guestOptions}
+                        className="w-full"
+                      />
                     </div>
-                  </label>
+                  </div>
                 </div>
 
                 <div className="mt-5 rounded-2xl bg-[#0D9488] p-4 text-white">

@@ -3,6 +3,7 @@ import { ArrowRight, Filter, Search, Star, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
+import StyledSelect from "@/components/StyledSelect";
 import { rooms } from "@/data/rooms";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -11,6 +12,17 @@ const Rooms = () => {
   const [query, setQuery] = useState("");
   const [capacity, setCapacity] = useState("all");
   const [sort, setSort] = useState("featured");
+
+  const capacityOptions = [
+    { value: "all", label: t("rooms.allCapacity") },
+    { value: "2", label: `2 ${t("rooms.guest")}` },
+  ];
+
+  const sortOptions = [
+    { value: "featured", label: t("rooms.sortFeatured") },
+    { value: "price-asc", label: t("rooms.sortPriceAsc") },
+    { value: "price-desc", label: t("rooms.sortPriceDesc") },
+  ];
 
   const filteredRooms = useMemo(() => {
     const result = rooms.filter((room) => {
@@ -46,23 +58,26 @@ const Rooms = () => {
 
           <div className="mb-6 grid gap-3 rounded-[1.5rem] border border-[#ece6dd] bg-white p-4 shadow-sm md:grid-cols-3">
             <div className="flex items-center gap-3 rounded-2xl bg-[#fbfaf7] px-4 py-3">
-              <Search className="h-4 w-4 text-[#0D9488]" />
+              <Search className="h-4 w-4 shrink-0 text-[#0D9488]" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder={t("rooms.searchName")} />
             </div>
             <div className="flex items-center gap-3 rounded-2xl bg-[#fbfaf7] px-4 py-3">
-              <Users className="h-4 w-4 text-[#0D9488]" />
-              <select value={capacity} onChange={(e) => setCapacity(e.target.value)} className="w-full bg-transparent text-sm outline-none">
-                <option value="all">{t("rooms.allCapacity")}</option>
-                <option value="2">2 {t("rooms.guest")}</option>
-              </select>
+              <Users className="h-4 w-4 shrink-0 text-[#0D9488]" />
+              <StyledSelect
+                value={capacity}
+                onChange={setCapacity}
+                options={capacityOptions}
+                className="w-full"
+              />
             </div>
             <div className="flex items-center gap-3 rounded-2xl bg-[#fbfaf7] px-4 py-3">
-              <Filter className="h-4 w-4 text-[#0D9488]" />
-              <select value={sort} onChange={(e) => setSort(e.target.value)} className="w-full bg-transparent text-sm outline-none">
-                <option value="featured">{t("rooms.sortFeatured")}</option>
-                <option value="price-asc">{t("rooms.sortPriceAsc")}</option>
-                <option value="price-desc">{t("rooms.sortPriceDesc")}</option>
-              </select>
+              <Filter className="h-4 w-4 shrink-0 text-[#0D9488]" />
+              <StyledSelect
+                value={sort}
+                onChange={setSort}
+                options={sortOptions}
+                className="w-full"
+              />
             </div>
           </div>
 

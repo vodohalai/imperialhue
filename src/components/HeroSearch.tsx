@@ -2,16 +2,22 @@ import { useState } from "react";
 import { CalendarDays, Search, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
+import StyledSelect from "@/components/StyledSelect";
 
 const HeroSearch = () => {
   const navigate = useNavigate();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const today = new Date().toISOString().slice(0, 10);
   const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
   const [checkIn, setCheckIn] = useState(today);
   const [checkOut, setCheckOut] = useState(tomorrow);
   const [guests, setGuests] = useState(2);
+
+  const guestOptions = [1, 2, 3, 4].map((n) => ({
+    value: String(n),
+    label: `${n} ${t("search.guestUnit")}`,
+  }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,17 +42,18 @@ const HeroSearch = () => {
             <input type="date" value={checkOut} min={checkIn} onChange={(e) => setCheckOut(e.target.value)} className="w-full bg-transparent outline-none" />
           </div>
         </label>
-        <label className="rounded-2xl bg-[#fbfaf7] p-4">
+        <div className="rounded-2xl bg-[#fbfaf7] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.guests")}</p>
-          <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Users className="h-4 w-4 text-[#0D9488]" />
-            <select value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="w-full bg-transparent outline-none">
-              {[1, 2, 3, 4].map((n) => (
-                <option key={n} value={n}>{n} {t("search.guestUnit")}</option>
-              ))}
-            </select>
+          <div className="mt-2 flex items-center gap-2">
+            <Users className="h-4 w-4 shrink-0 text-[#0D9488]" />
+            <StyledSelect
+              value={String(guests)}
+              onChange={(v) => setGuests(Number(v))}
+              options={guestOptions}
+              className="w-full"
+            />
           </div>
-        </label>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row">

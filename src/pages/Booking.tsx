@@ -3,6 +3,7 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { ArrowLeft, CalendarDays, Check, Users } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
+import StyledSelect from "@/components/StyledSelect";
 import { getRoomBySlug } from "@/data/rooms";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { showSuccess } from "@/utils/toast";
@@ -21,6 +22,11 @@ const Booking = () => {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [done, setDone] = useState(false);
+
+  const guestOptions = [1, 2, 3, 4].map((n) => ({
+    value: String(n),
+    label: `${n} ${t("search.guestUnit")}`,
+  }));
 
   if (!room) {
     return (
@@ -89,14 +95,18 @@ const Booking = () => {
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.checkOut")}</p>
                     <input type="date" value={checkOut} min={checkIn} onChange={(e) => setCheckOut(e.target.value)} className="mt-2 w-full bg-transparent text-sm font-semibold outline-none" />
                   </label>
-                  <label className="rounded-2xl bg-[#fbfaf7] p-4 md:col-span-2">
+                  <div className="rounded-2xl bg-[#fbfaf7] p-4 md:col-span-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.guests")}</p>
-                    <select value={guests} onChange={(e) => setGuests(Number(e.target.value))} className="mt-2 w-full bg-transparent text-sm font-semibold outline-none">
-                      {[1, 2, 3, 4].map((n) => (
-                        <option key={n} value={n}>{n} {t("search.guestUnit")}</option>
-                      ))}
-                    </select>
-                  </label>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Users className="h-4 w-4 shrink-0 text-[#0D9488]" />
+                      <StyledSelect
+                        value={String(guests)}
+                        onChange={(v) => setGuests(Number(v))}
+                        options={guestOptions}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
