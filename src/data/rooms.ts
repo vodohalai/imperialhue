@@ -1,0 +1,146 @@
+export type Room = {
+  slug: string;
+  name: string;
+  price: number;
+  capacity: number;
+  size: string;
+  bed: string;
+  shortDescription: string;
+  longDescription: string;
+  images: string[];
+  amenities: string[];
+  policy: string[];
+};
+
+export const rooms: Room[] = [
+  {
+    slug: "superior",
+    name: "Phòng Superior",
+    price: 1200000,
+    capacity: 2,
+    size: "22 m²",
+    bed: "1 giường Queen",
+    shortDescription: "Không gian ấm cúng, phù hợp cho cặp đôi hoặc khách công tác.",
+    longDescription:
+      "Phòng Superior mang đến trải nghiệm nghỉ ngơi tinh tế với thiết kế hiện đại, ánh sáng tự nhiên và đầy đủ tiện nghi cho kỳ nghỉ thoải mái tại Huế.",
+    images: [
+      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    ],
+    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng tắm riêng", "Giường cao cấp", "Đỗ xe", "An toàn 24/7"],
+    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+  },
+  {
+    slug: "deluxe",
+    name: "Phòng Deluxe",
+    price: 1500000,
+    capacity: 2,
+    size: "28 m²",
+    bed: "1 giường King",
+    shortDescription: "Không gian rộng rãi, thiết kế thanh lịch.",
+    longDescription:
+      "Phòng Deluxe mở rộng diện tích và nâng cao tiện nghi, lý tưởng cho kỳ nghỉ dưỡng thư giãn ngay trung tâm thành phố Huế.",
+    images: [
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+    ],
+    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng tắm riêng", "Giường King", "Đỗ xe", "Lễ tân 24/7"],
+    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+  },
+  {
+    slug: "deluxe-balcony",
+    name: "Phòng Deluxe Balcony",
+    price: 1700000,
+    capacity: 2,
+    size: "30 m²",
+    bed: "1 giường King",
+    shortDescription: "Có ban công riêng, view thành phố.",
+    longDescription:
+      "Phòng Deluxe Balcony có ban công riêng, phù hợp để tận hưởng không gian thoáng đãng và quan sát nhịp sống Huế.",
+    images: [
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    ],
+    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Ban công riêng", "Giường King", "Đỗ xe", "Lễ tân 24/7"],
+    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+  },
+  {
+    slug: "premier",
+    name: "Phòng Premier",
+    price: 1900000,
+    capacity: 2,
+    size: "32 m²",
+    bed: "1 giường King",
+    shortDescription: "Trải nghiệm cao cấp với không gian thoáng đãng.",
+    longDescription:
+      "Phòng Premier kết hợp tinh thần Huế và sự tiện nghi hiện đại, mang đến không gian sang trọng cho kỳ nghỉ trọn vẹn.",
+    images: [
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+    ],
+    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng tắm cao cấp", "Giường King", "Minibar", "Lễ tân 24/7"],
+    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 48 giờ"],
+  },
+  {
+    slug: "junior-suite",
+    name: "Phòng Junior Suite",
+    price: 2300000,
+    capacity: 2,
+    size: "40 m²",
+    bed: "1 giường King",
+    shortDescription: "Không gian rộng, sang trọng và riêng tư.",
+    longDescription:
+      "Junior Suite có khu tiếp khách riêng và phòng tắm cao cấp, dành cho khách yêu thích sự sang trọng.",
+    images: [
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+    ],
+    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Khu tiếp khách", "Bồn tắm", "Minibar", "Lễ tân 24/7"],
+    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 72 giờ"],
+  },
+  {
+    slug: "imperial-suite",
+    name: "Phòng Imperial Suite",
+    price: 3200000,
+    capacity: 2,
+    size: "55 m²",
+    bed: "1 giường King",
+    shortDescription: "Lựa chọn cao cấp nhất cho kỳ nghỉ đặc biệt.",
+    longDescription:
+      "Imperial Suite mang đến không gian sang trọng bậc nhất với phòng khách rộng, ban công riêng và dịch vụ chăm sóc cao cấp.",
+    images: [
+      "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
+      "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
+    ],
+    amenities: ["Wi-Fi tốc độ cao", "Bữa sáng", "Phòng khách riêng", "Ban công riêng", "Minibar", "Đưa đón sân bay"],
+    policy: ["Nhận phòng 14:00", "Trả phòng 12:00", "Hủy miễn phí trước 72 giờ"],
+  },
+];
+
+export const getRoomBySlug = (slug?: string) => rooms.find((r) => r.slug === slug);
+
+export const formatPrice = (price: number) => `${price.toLocaleString("vi-VN")} VND / đêm`;

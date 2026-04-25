@@ -1,8 +1,5 @@
-import { useMemo, useState } from "react";
 import {
   ArrowRight,
-  CalendarDays,
-  ChevronDown,
   CircleHelp,
   MessageCircleMore,
   Search,
@@ -11,7 +8,6 @@ import {
   BedDouble,
   MapPin,
   Waves,
-  Users,
   Phone,
   Ticket,
   Images,
@@ -23,15 +19,8 @@ import {
 import { Link } from "react-router-dom";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
-
-const rooms = [
-  { name: "Phòng Superior", slug: "superior", price: "1.200.000 VND / đêm", image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "22 m²", "1 giường Queen"] },
-  { name: "Phòng Deluxe", slug: "deluxe", price: "1.500.000 VND / đêm", image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "28 m²", "1 giường King"] },
-  { name: "Phòng Deluxe Balcony", slug: "deluxe-balcony", price: "1.700.000 VND / đêm", image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "30 m²", "1 giường King"] },
-  { name: "Phòng Premier", slug: "premier", price: "1.900.000 VND / đêm", image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "32 m²", "1 giường King"] },
-  { name: "Phòng Junior Suite", slug: "junior-suite", price: "2.300.000 VND / đêm", image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "40 m²", "1 giường King"] },
-  { name: "Phòng Imperial Suite", slug: "imperial-suite", price: "3.200.000 VND / đêm", image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "55 m²", "1 giường King"] },
-];
+import HeroSearch from "@/components/HeroSearch";
+import { rooms, formatPrice } from "@/data/rooms";
 
 const features = [
   { icon: MapPin, title: "Vị trí thuận tiện", desc: "Trung tâm thành phố Huế, gần các điểm tham quan nổi tiếng" },
@@ -48,9 +37,6 @@ const quickActions = [
 ];
 
 const Index = () => {
-  const [guests, setGuests] = useState("2 khách, 1 phòng");
-  const guestOptions = useMemo(() => ["1 khách, 1 phòng", "2 khách, 1 phòng", "3 khách, 1 phòng", "4 khách, 2 phòng"], []);
-
   return (
     <div className="min-h-screen bg-[#fbfaf7] text-slate-800">
       <SiteHeader />
@@ -74,55 +60,8 @@ const Index = () => {
                 Không gian nghỉ dưỡng tinh tế, ấm cúng và đậm chất Huế, nơi mỗi chi tiết đều được chăm chút để bạn có một kỳ nghỉ thật trọn vẹn.
               </p>
 
-              <div className="mt-6 grid gap-3 rounded-[1.5rem] border border-[#ece6dd] bg-white p-3 shadow-sm sm:grid-cols-3">
-                <div className="rounded-2xl bg-[#fbfaf7] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Nhận phòng</p>
-                  <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <CalendarDays className="h-4 w-4 text-[#0D9488]" />
-                    Chọn ngày
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-[#fbfaf7] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Trả phòng</p>
-                  <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                    <CalendarDays className="h-4 w-4 text-[#0D9488]" />
-                    Chọn ngày
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-[#fbfaf7] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Khách</p>
-                  <div className="mt-2 flex items-center justify-between gap-2 text-sm font-semibold text-slate-700">
-                    <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-[#0D9488]" />
-                      {guests}
-                    </div>
-                    <ChevronDown className="h-4 w-4 text-slate-400" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-                <Link to="/contact" className="flex-1 rounded-full bg-[#f97316] px-6 py-4 text-center text-base font-bold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
-                  Kiểm tra phòng trống
-                </Link>
-                <Link to="/rooms" className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d9e7e5] bg-white px-6 py-4 text-base font-semibold text-[#0D9488]">
-                  <Search className="h-4 w-4" />
-                  Tìm bằng AI
-                </Link>
-              </div>
-
-              <div className="mt-6 flex flex-wrap gap-3">
-                {guestOptions.map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setGuests(option)}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      guests === option ? "bg-[#0D9488] text-white" : "bg-[#f3f7f6] text-slate-600 hover:bg-[#e8f3f1]"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
+              <div className="mt-6">
+                <HeroSearch />
               </div>
             </div>
           </div>
@@ -158,9 +97,9 @@ const Index = () => {
 
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {rooms.map((room) => (
-              <article key={room.name} className="group overflow-hidden rounded-[1.75rem] border border-[#ece6dd] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
+              <article key={room.slug} className="group overflow-hidden rounded-[1.75rem] border border-[#ece6dd] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                 <div className="relative h-64 overflow-hidden">
-                  <img src={room.image} alt={room.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  <img src={room.images[0]} alt={room.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                   <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#0D9488] shadow">
                     Xem chi tiết
                   </div>
@@ -168,14 +107,12 @@ const Index = () => {
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-4">
                     <h4 className="text-lg font-bold text-slate-900">{room.name}</h4>
-                    <p className="text-sm font-bold text-[#f97316]">{room.price}</p>
+                    <p className="text-sm font-bold text-[#f97316]">{formatPrice(room.price)}</p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-600">
-                    {room.meta.map((item) => (
-                      <span key={item} className="rounded-full bg-[#fbfaf7] px-3 py-1">
-                        {item}
-                      </span>
-                    ))}
+                    <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{room.capacity} khách</span>
+                    <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{room.size}</span>
+                    <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{room.bed}</span>
                   </div>
                   <div className="mt-5 flex items-center justify-between">
                     <Link to={`/rooms/${room.slug}`} className="text-sm font-semibold text-[#f97316]">
@@ -227,13 +164,6 @@ const Index = () => {
                       </Link>
                     );
                   })}
-                </div>
-
-                <div className="mt-5 flex items-center gap-3 rounded-full border border-[#e4eeec] bg-white px-4 py-3">
-                  <input className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400" placeholder="Bạn cần hỗ trợ gì?" />
-                  <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0D9488] text-white">
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
             </div>
