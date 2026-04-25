@@ -6,16 +6,23 @@ import { useLanguage } from '@/i18n/LanguageContext';
 export const BehavioralIntelligence = () => {
   const { t } = useLanguage();
   const [showExitPopup, setShowExitPopup] = useState(false);
-  const [hasShown, setHasShown] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(600); // Đặt lại thành 10 phút (600 giây)
+  
+  // Kiểm tra sessionStorage để biết Pop-up đã từng hiển thị trong phiên này chưa
+  const [hasShown, setHasShown] = useState(() => {
+    return sessionStorage.getItem('imperial_popup_shown') === 'true';
+  });
+
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const handleMouseOut = (e: MouseEvent) => {
-      // Phát hiện di chuyển chuột lên thanh địa chỉ (Exit Intent)
+      // Chỉ kích hoạt nếu chuột di chuyển lên trên và chưa từng hiển thị trong phiên này
       if (e.clientY <= 5 && !hasShown) {
         setShowExitPopup(true);
         setHasShown(true);
+        // Lưu trạng thái vào sessionStorage để không hiển thị lại khi tải lại trang
+        sessionStorage.setItem('imperial_popup_shown', 'true');
         startTimer();
       }
     };
@@ -30,7 +37,7 @@ export const BehavioralIntelligence = () => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          setShowExitPopup(false); // Tự động thoát Pop-up khi về 00:00
+          setShowExitPopup(false); // Auto close when time is up
           return 0;
         }
         return prev - 1;
