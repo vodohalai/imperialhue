@@ -7,7 +7,7 @@ export const BehavioralIntelligence = () => {
   const { t } = useLanguage();
   const [showExitPopup, setShowExitPopup] = useState(false);
   const [hasShown, setHasShown] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(30); // 30 seconds countdown
+  const [timeLeft, setTimeLeft] = useState(600); // Đặt lại thành 10 phút (600 giây)
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -30,6 +30,7 @@ export const BehavioralIntelligence = () => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
+          setShowExitPopup(false); // Tự động thoát Pop-up khi về 00:00
           return 0;
         }
         return prev - 1;
