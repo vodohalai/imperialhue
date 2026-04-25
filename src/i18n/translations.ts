@@ -97,7 +97,7 @@ const t = {
   "avail.noRooms": { vi: "Không có phòng phù hợp với số lượng khách. Vui lòng thử lại với cấu hình khác.", en: "No rooms match your guest count. Please try a different configuration." },
   "avail.invalidDate": { vi: "Ngày trả phòng phải sau ngày nhận phòng. Vui lòng chọn lại.", en: "Check-out must be after check-in. Please select again." },
 
-  // AI section
+  // AI section & Behavioral Intelligence
   "ai.label": { vi: "AI Agent", en: "AI Agent" },
   "ai.title": { vi: "Imperial, trợ lý du lịch của bạn", en: "Imperial, your travel assistant" },
   "ai.welcome": { vi: "Chào mừng bạn đến với The Imperial Hue!", en: "Welcome to The Imperial Hue!" },
@@ -106,6 +106,17 @@ const t = {
   "ai.offers": { vi: "Ưu đãi", en: "Offers" },
   "ai.support": { vi: "Hỗ trợ", en: "Support" },
   "ai.gallery": { vi: "Thư viện", en: "Gallery" },
+  
+  "pop.waitTitle": { vi: "Đợi chút! Chúng tôi có", en: "Wait! We have a" },
+  "pop.specialOffer": { vi: "ưu đãi đặc biệt", en: "special offer" },
+  "pop.forYou": { vi: "cho bạn", en: "for you" },
+  "pop.limited": { vi: "Ưu đãi có hạn", en: "Limited Offer" },
+  "pop.todayOffer": { vi: "Ưu đãi đặc biệt hôm nay", en: "Today's special offer" },
+  "pop.discount": { vi: "Giảm 15% tất cả các phòng", en: "15% off all rooms" },
+  "pop.valid": { vi: "Áp dụng khi đặt phòng ngay hôm nay", en: "Valid when booking today" },
+  "pop.expires": { vi: "Ưu đãi hết hạn sau:", en: "Offer expires in:" },
+  "pop.claim": { vi: "Nhận ưu đãi ngay", en: "Claim offer now" },
+  "pop.noThanks": { vi: "Không, tôi không cần", en: "No, I don't need this" },
 
   // Offers
   "offers.label": { vi: "Ưu đãi", en: "Offers" },
