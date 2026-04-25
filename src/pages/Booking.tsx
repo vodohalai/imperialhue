@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarDays, Check, Users } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
 import StyledSelect from "@/components/StyledSelect";
+import StyledDatePicker from "@/components/StyledDatePicker";
 import { getRoomBySlug } from "@/data/rooms";
 import { useLanguage } from "@/i18n/LanguageContext";
 import { showSuccess } from "@/utils/toast";
@@ -22,6 +23,8 @@ const Booking = () => {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [done, setDone] = useState(false);
+
+  const today = new Date().toISOString().slice(0, 10);
 
   const guestOptions = [1, 2, 3, 4].map((n) => ({
     value: String(n),
@@ -87,14 +90,18 @@ const Booking = () => {
                 <h1 className="mt-2 text-2xl font-black text-slate-900">{t("booking.title")}</h1>
 
                 <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  <label className="rounded-2xl bg-[#fbfaf7] p-4">
+                  <div className="rounded-2xl bg-[#fbfaf7] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.checkIn")}</p>
-                    <input type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className="mt-2 w-full bg-transparent text-sm font-semibold outline-none" />
-                  </label>
-                  <label className="rounded-2xl bg-[#fbfaf7] p-4">
+                    <div className="mt-2">
+                      <StyledDatePicker value={checkIn} onChange={setCheckIn} min={today} />
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-[#fbfaf7] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.checkOut")}</p>
-                    <input type="date" value={checkOut} min={checkIn} onChange={(e) => setCheckOut(e.target.value)} className="mt-2 w-full bg-transparent text-sm font-semibold outline-none" />
-                  </label>
+                    <div className="mt-2">
+                      <StyledDatePicker value={checkOut} onChange={setCheckOut} min={checkIn} />
+                    </div>
+                  </div>
                   <div className="rounded-2xl bg-[#fbfaf7] p-4 md:col-span-2">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.guests")}</p>
                     <div className="mt-2 flex items-center gap-2">

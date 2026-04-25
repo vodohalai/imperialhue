@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, BedDouble, CalendarDays, ShieldCheck, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, BedDouble, ShieldCheck, Sparkles, Users } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
 import StyledSelect from "@/components/StyledSelect";
+import StyledDatePicker from "@/components/StyledDatePicker";
 import { getRoomBySlug } from "@/data/rooms";
 import { useLanguage } from "@/i18n/LanguageContext";
 
@@ -133,20 +134,18 @@ const RoomDetail = () => {
                 <p className="mt-1 text-2xl font-black text-slate-900">{room.price.toLocaleString("vi-VN")} VND {t("rooms.perNight")}</p>
 
                 <div className="mt-5 space-y-3">
-                  <label className="block rounded-2xl bg-[#fbfaf7] p-4">
+                  <div className="rounded-2xl bg-[#fbfaf7] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.checkIn")}</p>
-                    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <CalendarDays className="h-4 w-4 text-[#0D9488]" />
-                      <input type="date" value={checkIn} min={today} onChange={(e) => setCheckIn(e.target.value)} className="w-full bg-transparent outline-none" />
+                    <div className="mt-2">
+                      <StyledDatePicker value={checkIn} onChange={setCheckIn} min={today} />
                     </div>
-                  </label>
-                  <label className="block rounded-2xl bg-[#fbfaf7] p-4">
+                  </div>
+                  <div className="rounded-2xl bg-[#fbfaf7] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.checkOut")}</p>
-                    <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                      <CalendarDays className="h-4 w-4 text-[#0D9488]" />
-                      <input type="date" value={checkOut} min={checkIn} onChange={(e) => setCheckOut(e.target.value)} className="w-full bg-transparent outline-none" />
+                    <div className="mt-2">
+                      <StyledDatePicker value={checkOut} onChange={setCheckOut} min={checkIn} />
                     </div>
-                  </label>
+                  </div>
                   <div className="rounded-2xl bg-[#fbfaf7] p-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.guests")}</p>
                     <div className="mt-2 flex items-center gap-2">

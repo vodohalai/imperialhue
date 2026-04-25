@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { CalendarDays, Search, Users } from "lucide-react";
+import { Search, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import StyledSelect from "@/components/StyledSelect";
+import StyledDatePicker from "@/components/StyledDatePicker";
 
 const HeroSearch = () => {
   const navigate = useNavigate();
@@ -28,20 +29,18 @@ const HeroSearch = () => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-3 rounded-[1.5rem] border border-[#ece6dd] bg-white p-3 shadow-sm sm:grid-cols-3">
-        <label className="rounded-2xl bg-[#fbfaf7] p-4">
+        <div className="rounded-2xl bg-[#fbfaf7] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.checkIn")}</p>
-          <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <CalendarDays className="h-4 w-4 text-[#0D9488]" />
-            <input type="date" value={checkIn} min={today} onChange={(e) => setCheckIn(e.target.value)} className="w-full bg-transparent outline-none" />
+          <div className="mt-2">
+            <StyledDatePicker value={checkIn} onChange={setCheckIn} min={today} />
           </div>
-        </label>
-        <label className="rounded-2xl bg-[#fbfaf7] p-4">
+        </div>
+        <div className="rounded-2xl bg-[#fbfaf7] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.checkOut")}</p>
-          <div className="mt-2 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <CalendarDays className="h-4 w-4 text-[#0D9488]" />
-            <input type="date" value={checkOut} min={checkIn} onChange={(e) => setCheckOut(e.target.value)} className="w-full bg-transparent outline-none" />
+          <div className="mt-2">
+            <StyledDatePicker value={checkOut} onChange={setCheckOut} min={checkIn} />
           </div>
-        </label>
+        </div>
         <div className="rounded-2xl bg-[#fbfaf7] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{t("search.guests")}</p>
           <div className="mt-2 flex items-center gap-2">
