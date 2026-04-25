@@ -1,7 +1,6 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 
-// Declare Deno for the TypeScript compiler
 declare const Deno: any;
 
 const corsHeaders = {
@@ -10,6 +9,8 @@ const corsHeaders = {
 }
 
 serve(async (req: Request) => {
+  console.log("[generate-article] Received request", { method: req.method });
+  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
@@ -19,19 +20,19 @@ serve(async (req: Request) => {
     const apiKey = Deno.env.get('OPENAI_API_KEY')
 
     if (!apiKey) {
-      console.error("[generate-article] Missing OPENAI_API_KEY");
-      return new Response(JSON.stringify({ error: "Missing OPENAI_API_KEY. Please set it in Supabase Secrets." }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      console.error("[generate-article] Error: OPENAI_API_KEY is not defined in Supabase Secrets");
+      return new Response(
+        JSON.stringify({ error: "Chưa cấu hình OPENAI_API_KEY trong Supabase Secrets." }), 
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    console.log("[generate-article] Requesting OpenAI for:", prompt)
+    console.log("[generate-article] Calling OpenAI API...", { prompt });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer \${apiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -43,7 +44,7 @@ serve(async (req: Request) => {
           },
           {
             role: 'user',
-            content: `Viết bài blog về: \${prompt}. Ngôn ngữ: \${lang === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}`
+            content: `Viết bài blog về: ${prompt}. Ngôn ngữ: ${lang === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}`
           }
         ],
         response_format: { type: "json_object" }
@@ -53,23 +54,24 @@ serve(async (req: Request) => {
     const data = await response.json()
 
     if (!response.ok) {
-      console.error("[generate-article] OpenAI Error:", data.error?.message);
-      return new Response(JSON.stringify({ error: data.error?.message || "OpenAI API Error" }), {
-        status: response.status,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
+      console.error("[generate-article] OpenAI API returned error:", data.error);
+      return new Response(
+        JSON.stringify({ error: data.error?.message || "Lỗi từ OpenAI API" }), 
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
+    console.log("[generate-article] OpenAI response received successfully");
     const result = JSON.parse(data.choices[0].message.content)
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (error: any) {
-    console.error("[generate-article] Critical Error:", error.message)
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+    console.error("[generate-article] Critical system error:", error.message)
+    return new Response(
+      JSON.stringify({ error: `Lỗi hệ thống: ${error.message}` }), 
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
 })

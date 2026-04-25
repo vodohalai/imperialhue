@@ -47,19 +47,27 @@ const AdminEditor = () => {
       const { data, error } = await supabase.functions.invoke("generate-article", {
         body: { prompt: aiPrompt }
       });
-      if (error) throw error;
       
-      setForm({
-        ...form,
-        title: data.title,
-        content: data.content,
-        excerpt: data.excerpt,
-        category: data.category,
-        slug: generateSlug(data.title)
-      });
-      showSuccess("AI đã tạo nội dung xong!");
+      if (error) {
+        // Cố gắng lấy message lỗi chi tiết từ response nếu có
+        const errorDetails = error.message;
+        console.error("Edge Function Error:", error);
+        throw new Error(errorDetails);
+      }
+      
+      if (data) {
+        setForm({
+          ...form,
+          title: data.title,
+          content: data.content,
+          excerpt: data.excerpt,
+          category: data.category,
+          slug: generateSlug(data.title)
+        });
+        showSuccess("AI đã tạo nội dung xong!");
+      }
     } catch (err: any) {
-      showError(err.message);
+      showError(err.message || "Không thể kết nối với dịch vụ AI");
     } finally {
       setAiLoading(false);
     }
@@ -94,7 +102,6 @@ const AdminEditor = () => {
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
-      {/* Top Bar */}
       <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-[#ece6dd] px-8 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -127,7 +134,6 @@ const AdminEditor = () => {
 
       <main className="max-w-7xl mx-auto p-8 grid grid-cols-[1fr_350px] gap-8">
         <div className="space-y-6">
-          {/* AI Assistance Section */}
           <div className="bg-[#f0f9f8] border border-[#d1e9e7] rounded-[2.5rem] p-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="h-10 w-10 bg-[#0D9488] rounded-xl flex items-center justify-center text-white"><Sparkles /></div>
@@ -155,7 +161,6 @@ const AdminEditor = () => {
             </div>
           </div>
 
-          {/* Main Form */}
           <div className="bg-white rounded-[2.5rem] border border-[#ece6dd] p-8 space-y-6 shadow-sm">
             <div>
               <label className="block text-sm font-bold text-slate-500 mb-2 uppercase tracking-wider">Tiêu đề bài viết</label>
