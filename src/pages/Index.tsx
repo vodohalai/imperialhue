@@ -4,8 +4,6 @@ import {
   CalendarDays,
   ChevronDown,
   CircleHelp,
-  Globe,
-  Menu,
   MessageCircleMore,
   Search,
   Sparkles,
@@ -15,63 +13,24 @@ import {
   Waves,
   Users,
   Phone,
-  Home,
   Ticket,
   Images,
   HeartHandshake,
   Mail,
   MapPinned,
   Clock3,
-  ShieldCheck,
-  Wifi,
-  UtensilsCrossed,
-  CarFront,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import SiteHeader from "@/components/SiteHeader";
+import SiteBottomNav from "@/components/SiteBottomNav";
 
 const rooms = [
-  {
-    name: "Phòng Superior",
-    slug: "superior",
-    price: "1.200.000 VND / đêm",
-    image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80",
-    meta: ["2 khách", "22 m²", "1 giường Queen"],
-  },
-  {
-    name: "Phòng Deluxe",
-    slug: "deluxe",
-    price: "1.500.000 VND / đêm",
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-    meta: ["2 khách", "28 m²", "1 giường King"],
-  },
-  {
-    name: "Phòng Deluxe Balcony",
-    slug: "deluxe-balcony",
-    price: "1.700.000 VND / đêm",
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
-    meta: ["2 khách", "30 m²", "1 giường King"],
-  },
-  {
-    name: "Phòng Premier",
-    slug: "premier",
-    price: "1.900.000 VND / đêm",
-    image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80",
-    meta: ["2 khách", "32 m²", "1 giường King"],
-  },
-  {
-    name: "Phòng Junior Suite",
-    slug: "junior-suite",
-    price: "2.300.000 VND / đêm",
-    image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80",
-    meta: ["2 khách", "40 m²", "1 giường King"],
-  },
-  {
-    name: "Phòng Imperial Suite",
-    slug: "imperial-suite",
-    price: "3.200.000 VND / đêm",
-    image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80",
-    meta: ["2 khách", "55 m²", "1 giường King"],
-  },
+  { name: "Phòng Superior", slug: "superior", price: "1.200.000 VND / đêm", image: "https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "22 m²", "1 giường Queen"] },
+  { name: "Phòng Deluxe", slug: "deluxe", price: "1.500.000 VND / đêm", image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "28 m²", "1 giường King"] },
+  { name: "Phòng Deluxe Balcony", slug: "deluxe-balcony", price: "1.700.000 VND / đêm", image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "30 m²", "1 giường King"] },
+  { name: "Phòng Premier", slug: "premier", price: "1.900.000 VND / đêm", image: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "32 m²", "1 giường King"] },
+  { name: "Phòng Junior Suite", slug: "junior-suite", price: "2.300.000 VND / đêm", image: "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "40 m²", "1 giường King"] },
+  { name: "Phòng Imperial Suite", slug: "imperial-suite", price: "3.200.000 VND / đêm", image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=80", meta: ["2 khách", "55 m²", "1 giường King"] },
 ];
 
 const features = [
@@ -82,18 +41,10 @@ const features = [
 ];
 
 const quickActions = [
-  { icon: Search, label: "Tìm phòng" },
-  { icon: Ticket, label: "Ưu đãi" },
-  { icon: CircleHelp, label: "Hỗ trợ" },
-  { icon: Images, label: "Thư viện" },
-];
-
-const bottomNav = [
-  { icon: Home, label: "Home", active: true, href: "/" },
-  { icon: BedDouble, label: "Rooms", href: "/rooms" },
-  { icon: Ticket, label: "Offers", href: "/offers" },
-  { icon: Images, label: "Gallery", href: "/explore" },
-  { icon: Phone, label: "Contact", href: "/contact" },
+  { icon: Search, label: "Tìm phòng", to: "/rooms" },
+  { icon: Ticket, label: "Ưu đãi", to: "/offers" },
+  { icon: CircleHelp, label: "Hỗ trợ", to: "/contact" },
+  { icon: Images, label: "Thư viện", to: "/explore" },
 ];
 
 const Index = () => {
@@ -102,52 +53,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-[#fbfaf7] text-slate-800">
-      <header className="sticky top-0 z-50 border-b border-[#ece6dd] bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#0D9488]/20 bg-[#f2fbfa] text-[#0D9488]">
-              <span className="text-lg font-bold">I</span>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold tracking-[0.35em] text-[#0D9488]">THE</p>
-              <h1 className="text-lg font-extrabold leading-none text-[#0f766e] sm:text-2xl">IMPERIAL HUE</h1>
-              <p className="text-[11px] font-semibold tracking-[0.3em] text-[#f97316]">BOUTIQUE HOTEL</p>
-            </div>
-          </div>
-
-          <nav className="hidden items-center gap-8 text-sm font-medium text-slate-600 lg:flex">
-            <a className="text-[#0D9488]" href="#top">Trang chủ</a>
-            <a href="#rooms">Phòng nghỉ</a>
-            <a href="#amenities">Tiện nghi</a>
-            <a href="#offers">Ưu đãi</a>
-            <a href="/explore">Khám phá Huế</a>
-            <a href="/contact">Liên hệ</a>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <button className="hidden items-center gap-2 rounded-full border border-[#e7e0d6] bg-white px-4 py-2 text-sm font-medium text-slate-600 sm:flex">
-              <Globe className="h-4 w-4" />
-              VI
-              <ChevronDown className="h-4 w-4" />
-            </button>
-            <Link to="/contact" className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
-              Đặt phòng ngay
-            </Link>
-            <button className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f97316] text-white lg:hidden">
-              <Menu className="h-6 w-6" />
-            </button>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main id="top">
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
-            <img
-              src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80"
-              alt="The Imperial Hue room"
-              className="h-full w-full object-cover"
-            />
+            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80" alt="The Imperial Hue room" className="h-full w-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/10 to-[#fbfaf7]" />
           </div>
 
@@ -308,21 +219,18 @@ const Index = () => {
                   {quickActions.map((action) => {
                     const Icon = action.icon;
                     return (
-                      <button key={action.label} className="flex items-center gap-3 rounded-2xl border border-[#e4eeec] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                      <Link key={action.label} to={action.to} className="flex items-center gap-3 rounded-2xl border border-[#e4eeec] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700">
                         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0D9488]/10 text-[#0D9488]">
                           <Icon className="h-5 w-5" />
                         </span>
                         {action.label}
-                      </button>
+                      </Link>
                     );
                   })}
                 </div>
 
                 <div className="mt-5 flex items-center gap-3 rounded-full border border-[#e4eeec] bg-white px-4 py-3">
-                  <input
-                    className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400"
-                    placeholder="Bạn cần hỗ trợ gì?"
-                  />
+                  <input className="w-full bg-transparent text-sm outline-none placeholder:text-slate-400" placeholder="Bạn cần hỗ trợ gì?" />
                   <button className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0D9488] text-white">
                     <ArrowRight className="h-4 w-4" />
                   </button>
@@ -363,7 +271,7 @@ const Index = () => {
           </div>
         </section>
 
-        <section id="gallery" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <section id="explore" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0D9488]/10 text-[#0D9488]">
@@ -386,6 +294,11 @@ const Index = () => {
                 </div>
               ))}
             </div>
+
+            <Link to="/explore" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#0D9488]">
+              Xem thêm gợi ý
+              <ArrowRight className="h-4 w-4" />
+            </Link>
           </div>
         </section>
 
@@ -455,25 +368,7 @@ const Index = () => {
         The Imperial Hue Boutique Hotel
       </footer>
 
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#e8e1d7] bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-7xl grid-cols-5 gap-1">
-          {bottomNav.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.label}
-                to={item.href}
-                className={`flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-medium ${
-                  item.active ? "text-[#f97316]" : "text-slate-500"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {item.label}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      <SiteBottomNav />
     </div>
   );
 };
