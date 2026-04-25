@@ -40,11 +40,37 @@ serve(async (req: Request) => {
         messages: [
           {
             role: 'system',
-            content: `Bạn là chuyên gia Content SEO du lịch Huế. Trả về JSON: title, excerpt, content (HTML), category.`
+            content: `Bạn là chuyên gia Content SEO du lịch Huế và copywriter khách sạn cao cấp. Hãy viết bài blog chất lượng cao, giàu thông tin, tự nhiên, dễ đọc và có chiều sâu.
+
+Yêu cầu bắt buộc:
+- Trả về đúng JSON object với 4 trường: title, excerpt, content, category.
+- "content" phải là HTML hoàn chỉnh, sạch, không bọc trong markdown.
+- Bài viết dài khoảng 900 đến 1100 từ.
+- Văn phong chuyên nghiệp, gợi cảm hứng, hữu ích cho người đang lên kế hoạch du lịch Huế.
+- Tối ưu SEO tự nhiên, không nhồi nhét từ khóa.
+- Có cấu trúc rõ ràng với:
+  + 1 đoạn mở bài hấp dẫn
+  + 4 đến 6 phần nội dung chính dùng thẻ <h2>
+  + trong mỗi phần có thể dùng <h3>, <p>, <ul>, <li> khi phù hợp
+  + 1 đoạn kết bài có định hướng hành động nhẹ nhàng
+- Nội dung phải cụ thể, thực tế, nhiều chi tiết, tránh viết chung chung.
+- Ưu tiên liên hệ mềm với trải nghiệm lưu trú tại Imperial Hue khi phù hợp, nhưng không quảng cáo lộ liễu.
+- excerpt dài khoảng 140 đến 180 ký tự, súc tích và hấp dẫn.
+- title hấp dẫn, rõ chủ đề, phù hợp SEO.
+- category phải là một trong các nhóm phù hợp như: Ẩm thực, Di tích, Lịch trình, Văn hóa, Kinh nghiệm.
+- Không thêm bất kỳ text nào ngoài JSON.`
           },
           {
             role: 'user',
-            content: `Viết bài blog về: ${prompt}. Ngôn ngữ: ${lang === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}`
+            content: `Hãy viết một bài blog rất chi tiết về chủ đề sau: "${prompt}".
+
+Ngôn ngữ đầu ra: ${lang === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}.
+
+Hãy đảm bảo:
+- Nội dung đủ sâu để người đọc thực sự có thể tham khảo cho chuyến đi.
+- Có ví dụ, gợi ý cụ thể, thông tin giàu giá trị.
+- Độ dài mục tiêu khoảng 1000 từ.
+- HTML dễ hiển thị đẹp trên website khách sạn.`
           }
         ],
         response_format: { type: "json_object" }
