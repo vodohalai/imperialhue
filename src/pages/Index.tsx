@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ArrowRight, CalendarDays, ChevronDown, CircleHelp, Globe, Menu, MessageCircleMore, Search, Sparkles, Star, BedDouble, MapPin, ShieldCheck, Wifi, UtensilsCrossed, Waves, Users, Phone, Home, Ticket, Images, HeartHandshake } from "lucide-react";
+import { ArrowRight, CalendarDays, ChevronDown, CircleHelp, Globe, Menu, MessageCircleMore, Search, Sparkles, Star, BedDouble, MapPin, Waves, Users, Phone, Home, Ticket, Images, HeartHandshake } from "lucide-react";
 
 const rooms = [
   {
@@ -17,7 +17,7 @@ const rooms = [
   {
     name: "Phòng Deluxe Balcony",
     price: "1.700.000 VND / đêm",
-    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format=crop&w=1200&q=80",
+    image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80",
     meta: ["2 khách", "30 m²", "1 giường King"],
   },
   {
@@ -117,7 +117,7 @@ const Index = () => {
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/10 to-[#fbfaf7]" />
           </div>
 
-          <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-24 sm:px-6 lg:px-8 lg:pb-16 lg:pt-28">
+          <div className="relative mx-auto max-w-7xl px-4 pb-10 pt-20 sm:px-6 lg:px-8 lg:pb-16 lg:pt-24">
             <div className="max-w-3xl rounded-[2rem] bg-white/90 p-6 shadow-2xl shadow-slate-200/60 backdrop-blur sm:p-8">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#0D9488]/10 px-4 py-2 text-sm font-semibold text-[#0D9488]">
                 <Sparkles className="h-4 w-4" />
