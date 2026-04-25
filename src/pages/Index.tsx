@@ -20,28 +20,33 @@ import { Link } from "react-router-dom";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
 import HeroSearch from "@/components/HeroSearch";
-import { rooms, formatPrice } from "@/data/rooms";
+import { rooms } from "@/data/rooms";
+import { useLanguage } from "@/i18n/LanguageContext";
+import type { TranslationKey } from "@/i18n/translations";
 
-const features = [
-  { icon: MapPin, title: "Vị trí thuận tiện", desc: "Trung tâm thành phố Huế, gần các điểm tham quan nổi tiếng" },
-  { icon: BedDouble, title: "Phòng nghỉ ấm cúng", desc: "Thiết kế hiện đại với nét duyên dáng xứ Huế" },
-  { icon: Waves, title: "Trải nghiệm địa phương", desc: "Gợi ý hành trình, ẩm thực và văn hóa đặc sắc của Huế" },
-  { icon: HeartHandshake, title: "Dịch vụ tận tâm", desc: "Đội ngũ thân thiện, luôn sẵn sàng đồng hành cùng bạn" },
+const featureKeys: { icon: typeof MapPin; titleKey: TranslationKey; descKey: TranslationKey }[] = [
+  { icon: MapPin, titleKey: "feat.location.title", descKey: "feat.location.desc" },
+  { icon: BedDouble, titleKey: "feat.rooms.title", descKey: "feat.rooms.desc" },
+  { icon: Waves, titleKey: "feat.local.title", descKey: "feat.local.desc" },
+  { icon: HeartHandshake, titleKey: "feat.service.title", descKey: "feat.service.desc" },
 ];
 
-const quickActions = [
-  { icon: Search, label: "Tìm phòng", to: "/rooms" },
-  { icon: Ticket, label: "Ưu đãi", to: "/offers" },
-  { icon: CircleHelp, label: "Hỗ trợ", to: "/contact" },
-  { icon: Images, label: "Thư viện", to: "/explore" },
+const quickActionKeys: { icon: typeof Search; labelKey: TranslationKey; to: string }[] = [
+  { icon: Search, labelKey: "ai.findRoom", to: "/rooms" },
+  { icon: Ticket, labelKey: "ai.offers", to: "/offers" },
+  { icon: CircleHelp, labelKey: "ai.support", to: "/contact" },
+  { icon: Images, labelKey: "ai.gallery", to: "/explore" },
 ];
 
 const Index = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-[#fbfaf7] text-slate-800">
       <SiteHeader />
 
       <main id="top">
+        {/* Hero */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
             <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80" alt="The Imperial Hue room" className="h-full w-full object-cover" />
@@ -52,12 +57,12 @@ const Index = () => {
             <div className="max-w-3xl rounded-[2rem] bg-white/90 p-6 shadow-2xl shadow-slate-200/60 backdrop-blur sm:p-8">
               <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-[#0D9488]/10 px-4 py-2 text-sm font-semibold text-[#0D9488]">
                 <Sparkles className="h-4 w-4" />
-                Chào bạn, bạn đang tìm kiếm một kỳ nghỉ như thế nào?
+                {t("hero.greeting")}
               </div>
 
               <h2 className="text-3xl font-black tracking-tight text-slate-900 sm:text-5xl">The Imperial Hue</h2>
               <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
-                Không gian nghỉ dưỡng tinh tế, ấm cúng và đậm chất Huế, nơi mỗi chi tiết đều được chăm chút để bạn có một kỳ nghỉ thật trọn vẹn.
+                {t("hero.desc")}
               </p>
 
               <div className="mt-6">
@@ -67,31 +72,33 @@ const Index = () => {
           </div>
         </section>
 
+        {/* Features */}
         <section id="amenities" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {features.map((feature) => {
+            {featureKeys.map((feature) => {
               const Icon = feature.icon;
               return (
-                <div key={feature.title} className="rounded-[1.5rem] border border-[#ece6dd] bg-white p-5 shadow-sm">
+                <div key={feature.titleKey} className="rounded-[1.5rem] border border-[#ece6dd] bg-white p-5 shadow-sm">
                   <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0D9488]/10 text-[#0D9488]">
                     <Icon className="h-6 w-6" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">{feature.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{feature.desc}</p>
+                  <h3 className="text-lg font-bold text-slate-900">{t(feature.titleKey)}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{t(feature.descKey)}</p>
                 </div>
               );
             })}
           </div>
         </section>
 
+        {/* Rooms */}
         <section id="rooms" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">Phòng nghỉ</p>
-              <h3 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">Không gian lưu trú tinh tế</h3>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">{t("rooms.label")}</p>
+              <h3 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">{t("rooms.title")}</h3>
             </div>
             <Link to="/rooms" className="hidden text-sm font-semibold text-[#0D9488] sm:inline-flex">
-              Xem tất cả
+              {t("rooms.viewAll")}
             </Link>
           </div>
 
@@ -99,24 +106,24 @@ const Index = () => {
             {rooms.map((room) => (
               <article key={room.slug} className="group overflow-hidden rounded-[1.75rem] border border-[#ece6dd] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                 <div className="relative h-64 overflow-hidden">
-                  <img src={room.images[0]} alt={room.name} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  <img src={room.images[0]} alt={t(room.nameKey)} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                   <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#0D9488] shadow">
-                    Xem chi tiết
+                    {t("rooms.viewDetail")}
                   </div>
                 </div>
                 <div className="p-5">
                   <div className="flex items-start justify-between gap-4">
-                    <h4 className="text-lg font-bold text-slate-900">{room.name}</h4>
-                    <p className="text-sm font-bold text-[#f97316]">{formatPrice(room.price)}</p>
+                    <h4 className="text-lg font-bold text-slate-900">{t(room.nameKey)}</h4>
+                    <p className="text-sm font-bold text-[#f97316]">{room.price.toLocaleString("vi-VN")} VND {t("rooms.perNight")}</p>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-600">
-                    <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{room.capacity} khách</span>
+                    <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{room.capacity} {t("rooms.guest")}</span>
                     <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{room.size}</span>
-                    <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{room.bed}</span>
+                    <span className="rounded-full bg-[#fbfaf7] px-3 py-1">{t(room.bedKey)}</span>
                   </div>
                   <div className="mt-5 flex items-center justify-between">
                     <Link to={`/rooms/${room.slug}`} className="text-sm font-semibold text-[#f97316]">
-                      Xem chi tiết
+                      {t("rooms.viewDetail")}
                     </Link>
                     <ArrowRight className="h-5 w-5 text-[#f97316]" />
                   </div>
@@ -126,6 +133,7 @@ const Index = () => {
           </div>
         </section>
 
+        {/* AI Agent + Offers */}
         <section id="offers" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="overflow-hidden rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
@@ -134,8 +142,8 @@ const Index = () => {
                   <MessageCircleMore className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#f97316]">AI Agent</p>
-                  <h3 className="text-2xl font-black text-slate-900">Imperial, trợ lý du lịch của bạn</h3>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#f97316]">{t("ai.label")}</p>
+                  <h3 className="text-2xl font-black text-slate-900">{t("ai.title")}</h3>
                 </div>
               </div>
 
@@ -145,22 +153,22 @@ const Index = () => {
                     <span className="text-2xl">🤖</span>
                   </div>
                   <div className="flex-1">
-                    <p className="text-base font-semibold text-slate-900">Chào mừng bạn đến với The Imperial Hue!</p>
+                    <p className="text-base font-semibold text-slate-900">{t("ai.welcome")}</p>
                     <p className="mt-1 text-sm leading-6 text-slate-600">
-                      Hãy hỏi tôi về phòng phù hợp, ưu đãi, lịch trình khám phá Huế hoặc hỗ trợ đặt phòng ngay.
+                      {t("ai.desc")}
                     </p>
                   </div>
                 </div>
 
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {quickActions.map((action) => {
+                  {quickActionKeys.map((action) => {
                     const Icon = action.icon;
                     return (
-                      <Link key={action.label} to={action.to} className="flex items-center gap-3 rounded-2xl border border-[#e4eeec] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700">
+                      <Link key={action.labelKey} to={action.to} className="flex items-center gap-3 rounded-2xl border border-[#e4eeec] bg-white px-4 py-3 text-left text-sm font-semibold text-slate-700">
                         <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#0D9488]/10 text-[#0D9488]">
                           <Icon className="h-5 w-5" />
                         </span>
-                        {action.label}
+                        {t(action.labelKey)}
                       </Link>
                     );
                   })}
@@ -171,8 +179,8 @@ const Index = () => {
             <div className="overflow-hidden rounded-[2rem] border border-[#ece6dd] bg-[#0D9488] p-6 text-white shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">Ưu đãi nổi bật</p>
-                  <h3 className="mt-2 text-2xl font-black">Đặt sớm, nhận giá tốt</h3>
+                  <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/70">{t("offers.highlight")}</p>
+                  <h3 className="mt-2 text-2xl font-black">{t("offers.earlyBird")}</h3>
                 </div>
                 <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/15">
                   <Star className="h-7 w-7 text-[#f97316]" />
@@ -181,26 +189,27 @@ const Index = () => {
 
               <div className="mt-6 space-y-4">
                 <div className="rounded-[1.5rem] bg-white/10 p-4">
-                  <p className="text-sm font-semibold">Miễn phí bữa sáng</p>
-                  <p className="mt-1 text-sm text-white/80">Áp dụng cho các hạng phòng chọn lọc.</p>
+                  <p className="text-sm font-semibold">{t("offers.freeBreakfast")}</p>
+                  <p className="mt-1 text-sm text-white/80">{t("offers.freeBreakfastDesc")}</p>
                 </div>
                 <div className="rounded-[1.5rem] bg-white/10 p-4">
-                  <p className="text-sm font-semibold">Ưu đãi dài ngày</p>
-                  <p className="mt-1 text-sm text-white/80">Giảm giá hấp dẫn cho kỳ nghỉ từ 3 đêm trở lên.</p>
+                  <p className="text-sm font-semibold">{t("offers.longStay")}</p>
+                  <p className="mt-1 text-sm text-white/80">{t("offers.longStayDesc")}</p>
                 </div>
                 <div className="rounded-[1.5rem] bg-white/10 p-4">
-                  <p className="text-sm font-semibold">Hỗ trợ tận tâm</p>
-                  <p className="mt-1 text-sm text-white/80">Đội ngũ luôn sẵn sàng tư vấn lịch trình tại Huế.</p>
+                  <p className="text-sm font-semibold">{t("offers.dedicated")}</p>
+                  <p className="mt-1 text-sm text-white/80">{t("offers.dedicatedDesc")}</p>
                 </div>
               </div>
 
               <Link to="/offers" className="mt-6 block w-full rounded-full bg-white px-5 py-4 text-center text-sm font-bold text-[#0D9488]">
-                Khám phá ưu đãi
+                {t("offers.discover")}
               </Link>
             </div>
           </div>
         </section>
 
+        {/* Explore */}
         <section id="explore" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3">
@@ -208,66 +217,67 @@ const Index = () => {
                 <Images className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#f97316]">Khám phá Huế</p>
-                <h3 className="text-2xl font-black text-slate-900">Gợi ý trải nghiệm quanh khách sạn</h3>
+                <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#f97316]">{t("explore.label")}</p>
+                <h3 className="text-2xl font-black text-slate-900">{t("explore.title")}</h3>
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {["Đại Nội Huế", "Sông Hương - Cầu Trường Tiền", "Ẩm thực cung đình và món Huế"].map((item) => (
-                <div key={item} className="rounded-[1.5rem] bg-[#fbfaf7] p-5">
-                  <p className="text-sm font-semibold text-slate-500">Điểm đến nổi bật</p>
-                  <h4 className="mt-2 text-lg font-bold text-slate-900">{item}</h4>
+              {(["explore.place1", "explore.place2", "explore.place3"] as const).map((key) => (
+                <div key={key} className="rounded-[1.5rem] bg-[#fbfaf7] p-5">
+                  <p className="text-sm font-semibold text-slate-500">{t("explore.highlight")}</p>
+                  <h4 className="mt-2 text-lg font-bold text-slate-900">{t(key)}</h4>
                   <p className="mt-2 text-sm leading-6 text-slate-600">
-                    Lý tưởng để kết hợp nghỉ dưỡng, khám phá văn hóa và thưởng thức ẩm thực địa phương.
+                    {t("explore.placeDesc")}
                   </p>
                 </div>
               ))}
             </div>
 
             <Link to="/explore" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-[#0D9488]">
-              Xem thêm gợi ý
+              {t("explore.more")}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </section>
 
+        {/* Contact */}
         <section id="contact" className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">Liên hệ</p>
-              <h3 className="mt-2 text-2xl font-black text-slate-900">Kết nối với The Imperial Hue</h3>
+              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">{t("contact.label")}</p>
+              <h3 className="mt-2 text-2xl font-black text-slate-900">{t("contact.title")}</h3>
               <p className="mt-3 text-sm leading-6 text-slate-600">
-                Gọi ngay hoặc gửi yêu cầu để đội ngũ lễ tân hỗ trợ bạn nhanh nhất.
+                {t("contact.desc")}
               </p>
 
               <div className="mt-6 space-y-4">
                 <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
                   <MapPinned className="mt-0.5 h-5 w-5 text-[#0D9488]" />
                   <div>
-                    <p className="font-semibold text-slate-900">Địa chỉ</p>
+                    <p className="font-semibold text-slate-900">{t("contact.address")}</p>
                     <p className="text-sm text-slate-600">8 Hùng Vương, Phú Nhuận, TP. Huế</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
                   <Phone className="mt-0.5 h-5 w-5 text-[#0D9488]" />
                   <div>
-                    <p className="font-semibold text-slate-900">Điện thoại</p>
+                    <p className="font-semibold text-slate-900">{t("contact.phone")}</p>
                     <p className="text-sm text-slate-600">+84 234 382 1234</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
                   <Mail className="mt-0.5 h-5 w-5 text-[#0D9488]" />
                   <div>
-                    <p className="font-semibold text-slate-900">Email</p>
+                    <p className="font-semibold text-slate-900">{t("contact.email")}</p>
                     <p className="text-sm text-slate-600">reservations@imperialhue.vn</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 rounded-2xl bg-[#fbfaf7] p-4">
                   <Clock3 className="mt-0.5 h-5 w-5 text-[#0D9488]" />
                   <div>
-                    <p className="font-semibold text-slate-900">Giờ hỗ trợ</p>
-                    <p className="text-sm text-slate-600">24/7 cho đặt phòng và tư vấn</p>
+                    <p className="font-semibold text-slate-900">{t("contact.hours")}</p>
+                    <p className="text-sm text-slate-600">{t("contact.hoursValue")}</p>
                   </div>
                 </div>
               </div>
@@ -275,18 +285,18 @@ const Index = () => {
 
             <div className="overflow-hidden rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
               <div className="grid gap-4 md:grid-cols-2">
-                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Họ và tên" />
-                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Email" />
-                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Số điện thoại" />
-                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Ngày nhận phòng" />
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder={t("contact.formName")} />
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder={t("contact.formEmail")} />
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder={t("contact.formPhone")} />
+                <input className="rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder={t("contact.formDate")} />
               </div>
-              <textarea className="mt-4 min-h-32 w-full rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder="Nội dung yêu cầu của bạn" />
+              <textarea className="mt-4 min-h-32 w-full rounded-2xl border border-[#e7e0d6] bg-[#fbfaf7] px-4 py-3 text-sm outline-none" placeholder={t("contact.formMessage")} />
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <button className="rounded-full bg-[#0D9488] px-6 py-3 text-sm font-semibold text-white">
-                  Gửi yêu cầu
+                  {t("contact.send")}
                 </button>
                 <a href="tel:+842343821234" className="rounded-full border border-[#d9e7e5] px-6 py-3 text-center text-sm font-semibold text-[#0D9488]">
-                  Gọi ngay
+                  {t("contact.callNow")}
                 </a>
               </div>
             </div>
@@ -295,7 +305,7 @@ const Index = () => {
       </main>
 
       <footer className="border-t border-[#ece6dd] bg-white px-4 py-8 text-center text-sm text-slate-500">
-        The Imperial Hue Boutique Hotel
+        {t("footer.text")}
       </footer>
 
       <SiteBottomNav />

@@ -1,6 +1,12 @@
+import type { TranslationKey } from "@/i18n/translations";
+
 export type Room = {
   slug: string;
   name: string;
+  nameKey: TranslationKey;
+  shortDescKey: TranslationKey;
+  longDescKey: TranslationKey;
+  bedKey: TranslationKey;
   price: number;
   capacity: number;
   size: string;
@@ -16,6 +22,10 @@ export const rooms: Room[] = [
   {
     slug: "superior",
     name: "Phòng Superior",
+    nameKey: "room.superior",
+    shortDescKey: "room.superior.short",
+    longDescKey: "room.superior.long",
+    bedKey: "room.bedQueen",
     price: 1200000,
     capacity: 2,
     size: "22 m²",
@@ -37,6 +47,10 @@ export const rooms: Room[] = [
   {
     slug: "deluxe",
     name: "Phòng Deluxe",
+    nameKey: "room.deluxe",
+    shortDescKey: "room.deluxe.short",
+    longDescKey: "room.deluxe.long",
+    bedKey: "room.bedKing",
     price: 1500000,
     capacity: 2,
     size: "28 m²",
@@ -58,6 +72,10 @@ export const rooms: Room[] = [
   {
     slug: "deluxe-balcony",
     name: "Phòng Deluxe Balcony",
+    nameKey: "room.deluxeBalcony",
+    shortDescKey: "room.deluxeBalcony.short",
+    longDescKey: "room.deluxeBalcony.long",
+    bedKey: "room.bedKing",
     price: 1700000,
     capacity: 2,
     size: "30 m²",
@@ -79,6 +97,10 @@ export const rooms: Room[] = [
   {
     slug: "premier",
     name: "Phòng Premier",
+    nameKey: "room.premier",
+    shortDescKey: "room.premier.short",
+    longDescKey: "room.premier.long",
+    bedKey: "room.bedKing",
     price: 1900000,
     capacity: 2,
     size: "32 m²",
@@ -100,6 +122,10 @@ export const rooms: Room[] = [
   {
     slug: "junior-suite",
     name: "Phòng Junior Suite",
+    nameKey: "room.juniorSuite",
+    shortDescKey: "room.juniorSuite.short",
+    longDescKey: "room.juniorSuite.long",
+    bedKey: "room.bedKing",
     price: 2300000,
     capacity: 2,
     size: "40 m²",
@@ -121,6 +147,10 @@ export const rooms: Room[] = [
   {
     slug: "imperial-suite",
     name: "Phòng Imperial Suite",
+    nameKey: "room.imperialSuite",
+    shortDescKey: "room.imperialSuite.short",
+    longDescKey: "room.imperialSuite.long",
+    bedKey: "room.bedKing",
     price: 3200000,
     capacity: 2,
     size: "55 m²",
@@ -143,4 +173,4 @@ export const rooms: Room[] = [
 
 export const getRoomBySlug = (slug?: string) => rooms.find((r) => r.slug === slug);
 
-export const formatPrice = (price: number) => `${price.toLocaleString("vi-VN")} VND / đêm`;
+export const formatPrice = (price: number) => `${price.toLocaleString("vi-VN")} VND`;
