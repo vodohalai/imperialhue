@@ -264,6 +264,18 @@ const AdminEditor = () => {
               <ImageIcon className="h-5 w-5 text-[#0D9488]" />
               Hình ảnh đại diện
             </h3>
+
+            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-slate-500">URL ảnh</label>
+            <input
+              type="text"
+              className="mb-4 w-full rounded-2xl border border-[#ece6dd] bg-[#fbfaf7] px-4 py-3 text-sm outline-none"
+              placeholder="https://example.com/image.jpg"
+              value={form.image_url || ""}
+              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            />
+
+            <div className="mb-4 h-px bg-[#ece6dd]" />
+
             <AdminImageUpload value={form.image_url || ""} onChange={(url) => setForm({ ...form, image_url: url })} />
           </div>
 
