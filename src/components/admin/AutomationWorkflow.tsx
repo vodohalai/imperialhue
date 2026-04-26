@@ -71,6 +71,7 @@ const AutomationWorkflow = () => {
   const [control, setControl] = useState<WorkflowControl | null>(null);
   const [loadingControl, setLoadingControl] = useState(true);
   const [savingControl, setSavingControl] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   const { stats, loading: statsLoading } = useAutomationStats();
 
   const steps: WorkflowStep[] = [
@@ -200,6 +201,20 @@ const AutomationWorkflow = () => {
     }
   };
 
+  const initData = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("init-automation-tables");
+      if (error) {
+        showError("Không thể khởi tạo dữ liệu automation. Lỗi: " + error.message);
+      } else {
+        showSuccess("Đã khởi tạo dữ liệu automation thành công. Đang tải lại...");
+        setIsInitialized(true); // trigger refetch stats
+      }
+    } catch (err: any) {
+      showError("Lỗi khi gọi function khởi tạo dữ liệu: " + err.message);
+    }
+  };
+
   useEffect(() => {
     fetchControl().catch(() => {});
   }, []);
@@ -271,10 +286,19 @@ const AutomationWorkflow = () => {
               {isPaused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
               {savingControl ? "Đang cập nhật..." : isPaused ? "Tiếp tục" : "Tạm dừng"}
             </button>
+
+            {/* Init Data button - always visible */}
+            <button
+              type="button"
+              onClick={initData}
+              className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-bold text-purple-700 hover:bg-purple-100 transition"
+            >
+              Khởi tạo dữ liệu automation
+            </button>
           </div>
         </div>
 
-        {/* Init button when loading failed */}
+        {/* Init workflow table button when loading failed */}
         {!control && !loadingControl && (
           <div className="mx-6 mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <p className="font-semibold">Chưa thể kết nối đến bảng workflow.</p>
