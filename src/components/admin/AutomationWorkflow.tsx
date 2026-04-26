@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import {
   Bot,
   CalendarClock,
@@ -23,7 +22,7 @@ type WorkflowStep = {
   status: WorkflowStatus;
   icon: typeof Search;
   accent: string;
-  position: string;
+  softBg: string;
 };
 
 const steps: WorkflowStep[] = [
@@ -34,8 +33,8 @@ const steps: WorkflowStep[] = [
     meta: "12 topics found",
     status: "running",
     icon: Search,
-    accent: "from-[#ffedd5] to-[#fff7ed] text-[#f97316]",
-    position: "left-[6%] top-[12%]",
+    accent: "text-[#f97316]",
+    softBg: "bg-[#fff7ed]",
   },
   {
     id: "queue",
@@ -44,8 +43,8 @@ const steps: WorkflowStep[] = [
     meta: "8 topics ready",
     status: "ready",
     icon: PlayCircle,
-    accent: "from-[#ecfeff] to-[#f0fdfa] text-[#0D9488]",
-    position: "left-[30%] top-[12%]",
+    accent: "text-[#0D9488]",
+    softBg: "bg-[#f0fdfa]",
   },
   {
     id: "writer",
@@ -54,8 +53,8 @@ const steps: WorkflowStep[] = [
     meta: "3 drafts created",
     status: "running",
     icon: FileText,
-    accent: "from-[#eff6ff] to-[#f8fbff] text-[#2563eb]",
-    position: "left-[54%] top-[12%]",
+    accent: "text-[#2563eb]",
+    softBg: "bg-[#eff6ff]",
   },
   {
     id: "image",
@@ -64,8 +63,8 @@ const steps: WorkflowStep[] = [
     meta: "3 covers ready",
     status: "ready",
     icon: ImageIcon,
-    accent: "from-[#f5f3ff] to-[#faf5ff] text-[#7c3aed]",
-    position: "left-[78%] top-[12%]",
+    accent: "text-[#7c3aed]",
+    softBg: "bg-[#f5f3ff]",
   },
   {
     id: "review",
@@ -74,8 +73,8 @@ const steps: WorkflowStep[] = [
     meta: "2 waiting approval",
     status: "waiting",
     icon: CheckCircle2,
-    accent: "from-[#fef3c7] to-[#fffbeb] text-[#d97706]",
-    position: "left-[18%] top-[58%]",
+    accent: "text-[#d97706]",
+    softBg: "bg-[#fffbeb]",
   },
   {
     id: "schedule",
@@ -84,8 +83,8 @@ const steps: WorkflowStep[] = [
     meta: "1 scheduled",
     status: "ready",
     icon: CalendarClock,
-    accent: "from-[#ecfccb] to-[#f7fee7] text-[#65a30d]",
-    position: "left-[42%] top-[58%]",
+    accent: "text-[#65a30d]",
+    softBg: "bg-[#f7fee7]",
   },
   {
     id: "publish",
@@ -94,8 +93,8 @@ const steps: WorkflowStep[] = [
     meta: "Auto publish active",
     status: "done",
     icon: Send,
-    accent: "from-[#dcfce7] to-[#f0fdf4] text-[#16a34a]",
-    position: "left-[66%] top-[58%]",
+    accent: "text-[#16a34a]",
+    softBg: "bg-[#f0fdf4]",
   },
 ];
 
@@ -104,44 +103,35 @@ const statusMap: Record<
   {
     label: string;
     badge: string;
-    ring: string;
     dot: string;
+    border: string;
   }
 > = {
   ready: {
     label: "Ready",
     badge: "bg-teal-50 text-teal-700 border-teal-200",
-    ring: "shadow-[0_0_0_8px_rgba(13,148,136,0.08)]",
     dot: "bg-teal-500",
+    border: "border-teal-200",
   },
   running: {
     label: "Running",
     badge: "bg-orange-50 text-orange-700 border-orange-200",
-    ring: "shadow-[0_0_0_8px_rgba(249,115,22,0.10)]",
     dot: "bg-orange-500",
+    border: "border-orange-200",
   },
   waiting: {
     label: "Waiting",
     badge: "bg-sky-50 text-sky-700 border-sky-200",
-    ring: "shadow-[0_0_0_8px_rgba(14,165,233,0.10)]",
     dot: "bg-sky-500",
+    border: "border-sky-200",
   },
   done: {
     label: "Done",
     badge: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    ring: "shadow-[0_0_0_8px_rgba(22,163,74,0.10)]",
     dot: "bg-emerald-500",
+    border: "border-emerald-200",
   },
 };
-
-const connectors = [
-  { id: "c1", d: "M 150 126 H 360" },
-  { id: "c2", d: "M 385 126 H 595" },
-  { id: "c3", d: "M 620 126 H 830" },
-  { id: "c4", d: "M 890 150 V 350 H 160" },
-  { id: "c5", d: "M 270 350 H 450" },
-  { id: "c6", d: "M 505 350 H 685" },
-];
 
 const AutomationWorkflow = () => {
   const [selectedId, setSelectedId] = useState("writer");
@@ -167,125 +157,58 @@ const AutomationWorkflow = () => {
 
           <div className="hidden items-center gap-2 rounded-full bg-[#f7fbfa] px-3 py-2 text-xs font-bold text-slate-600 sm:inline-flex">
             <Sparkles className="h-3.5 w-3.5 text-[#f97316]" />
-            Make-style view
+            Simple flow view
           </div>
         </div>
 
-        <div className="p-3 sm:p-4">
-          <div className="relative min-h-[620px] rounded-[2rem] border border-[#efe8dd] bg-[#fcfaf6]">
-            <div className="absolute inset-0 opacity-40">
-              <div className="h-full w-full bg-[radial-gradient(circle_at_1px_1px,#e9dfd0_1px,transparent_0)] bg-[size:24px_24px]" />
-            </div>
-
-            <svg
-              className="absolute inset-0 hidden h-full w-full lg:block"
-              viewBox="0 0 980 620"
-              fill="none"
-              preserveAspectRatio="none"
-            >
-              {connectors.map((connector) => (
-                <motion.path
-                  key={connector.id}
-                  d={connector.d}
-                  stroke="#d8cfc1"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  fill="none"
-                  initial={{ pathLength: 0.15, opacity: 0.35 }}
-                  animate={{ pathLength: 1, opacity: 1 }}
-                  transition={{ duration: 1.2, ease: "easeInOut" }}
-                />
-              ))}
-            </svg>
-
-            <div className="absolute inset-0 hidden lg:block">
-              <motion.div
-                animate={{
-                  x: [150, 360, 595, 830, 890, 160, 450, 685],
-                  y: [126, 126, 126, 126, 150, 350, 350, 350],
-                }}
-                transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute h-3.5 w-3.5 rounded-full bg-[#f97316] shadow-[0_0_18px_rgba(249,115,22,0.55)]"
-              />
-            </div>
-
-            <div className="relative grid gap-4 p-4 sm:p-6 lg:hidden">
-              {steps.map((step) => {
+        <div className="border-t border-[#f6f1e8] bg-[#fcfaf6] p-4 sm:p-6">
+          <div className="rounded-[2rem] border border-[#efe8dd] bg-[#fdfbf7] p-4 sm:p-6">
+            <div className="space-y-0">
+              {steps.map((step, index) => {
                 const Icon = step.icon;
                 const state = statusMap[step.status];
                 const isSelected = selectedId === step.id;
+                const isLast = index === steps.length - 1;
 
                 return (
-                  <button
-                    key={step.id}
-                    type="button"
-                    onClick={() => setSelectedId(step.id)}
-                    className={`flex items-center gap-4 rounded-[1.75rem] border p-4 text-left transition ${
-                      isSelected
-                        ? "border-[#0D9488] bg-white shadow-lg shadow-teal-100/40"
-                        : "border-[#ece6dd] bg-white hover:border-[#d9d1c5]"
-                    }`}
-                  >
-                    <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-[1.25rem] bg-gradient-to-br ${step.accent}`}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="font-black text-slate-900">{step.title}</p>
-                        <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold ${state.badge}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${state.dot}`} />
-                          {state.label}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs text-slate-500">{step.meta}</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="relative hidden h-[620px] lg:block">
-              {steps.map((step) => {
-                const Icon = step.icon;
-                const state = statusMap[step.status];
-                const isSelected = selectedId === step.id;
-
-                return (
-                  <button
-                    key={step.id}
-                    type="button"
-                    onClick={() => setSelectedId(step.id)}
-                    className={`absolute ${step.position} group`}
-                  >
-                    <motion.div
-                      whileHover={{ y: -3, scale: 1.02 }}
-                      animate={isSelected ? { scale: 1.04 } : { scale: 1 }}
-                      className={`relative flex h-[118px] w-[118px] items-center justify-center rounded-[2rem] border bg-white transition ${
+                  <div key={step.id} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedId(step.id)}
+                      className={`relative z-10 flex w-full items-center gap-4 rounded-[2rem] border bg-white p-4 text-left transition sm:p-5 ${
                         isSelected
-                          ? `border-[#0D9488] ${state.ring}`
-                          : "border-[#e7ddd0] shadow-sm"
+                          ? "border-[#0D9488] shadow-[0_12px_30px_rgba(13,148,136,0.12)]"
+                          : "border-[#eadfce] hover:border-[#d9cdbd] hover:shadow-sm"
                       }`}
                     >
-                      <div className={`absolute inset-3 rounded-[1.5rem] bg-gradient-to-br ${step.accent} opacity-90`} />
-                      <div className="relative z-10 flex flex-col items-center">
-                        <Icon className="h-7 w-7" />
-                        <span className="mt-2 max-w-[84px] text-center text-[11px] font-black leading-4 text-slate-900">
-                          {step.title}
-                        </span>
+                      <div className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] ${step.softBg} ${step.accent}`}>
+                        <Icon className="h-8 w-8" />
                       </div>
 
-                      <div className="absolute -right-2 top-1/2 z-20 -translate-y-1/2">
-                        <div className={`flex h-5 w-5 items-center justify-center rounded-full border border-white ${state.dot}`}>
-                          <span className="h-2.5 w-2.5 rounded-full bg-white" />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <h3 className="text-xl font-black text-slate-900">{step.title}</h3>
+                          <span
+                            className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${state.badge}`}
+                          >
+                            <span className={`h-2 w-2 rounded-full ${state.dot} ${step.status === "running" ? "animate-pulse" : ""}`} />
+                            {state.label}
+                          </span>
+                        </div>
+                        <p className="mt-1 text-sm font-medium text-slate-500">{step.meta}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{step.desc}</p>
+                      </div>
+                    </button>
+
+                    {!isLast && (
+                      <div className="relative flex h-8 justify-center">
+                        <div className="absolute top-0 h-full w-px bg-[#d8cfc1]" />
+                        <div className="absolute top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-[#eadfce] bg-white text-slate-400">
+                          <ChevronRight className="h-4 w-4 rotate-90" />
                         </div>
                       </div>
-
-                      <div className="absolute -bottom-12 left-1/2 min-w-max -translate-x-1/2 rounded-full bg-slate-900 px-3 py-1.5 text-[10px] font-bold text-white opacity-0 shadow-lg transition group-hover:opacity-100">
-                        {step.meta}
-                      </div>
-                    </motion.div>
-                  </button>
+                    )}
+                  </div>
                 );
               })}
             </div>
@@ -305,20 +228,20 @@ const AutomationWorkflow = () => {
           </div>
         </div>
 
-        <div className={`mt-5 rounded-[1.75rem] bg-gradient-to-br p-5 ${selectedStep.accent}`}>
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/80 text-current shadow-sm">
+        <div className={`mt-5 rounded-[1.75rem] border ${statusMap[selectedStep.status].border} ${selectedStep.softBg} p-5`}>
+          <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-white ${selectedStep.accent} shadow-sm`}>
             <selectedStep.icon className="h-7 w-7" />
           </div>
-          <p className="mt-4 text-sm font-bold">{selectedStep.meta}</p>
+          <p className="mt-4 text-sm font-bold text-slate-900">{selectedStep.meta}</p>
         </div>
 
         <p className="mt-5 text-sm leading-7 text-slate-600">{selectedStep.desc}</p>
 
         <div className="mt-6 space-y-3">
           {[
-            "Module này là một phần của pipeline AI blog bán tự động.",
-            "Khi nối backend thật, khu này sẽ hiển thị dữ liệu theo thời gian thực.",
-            "Bạn sẽ có thể bấm hành động trực tiếp như chạy research, tạo draft, duyệt hoặc lên lịch.",
+            "Workflow giờ được sắp xếp theo luồng dọc để dễ theo dõi và dễ mở rộng.",
+            "Mỗi bước thể hiện rõ trạng thái hiện tại và nội dung đang xử lý.",
+            "Khi nối backend thật, từng bước có thể hiển thị dữ liệu realtime và hành động trực tiếp.",
           ].map((item) => (
             <div key={item} className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm leading-6 text-slate-600">
               {item}
