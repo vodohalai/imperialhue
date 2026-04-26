@@ -149,70 +149,60 @@ const AutomationWorkflow = () => {
     [selectedId],
   );
 
-  // Initialize workflow table if missing, then fetch control
-  useEffect(() => {
-    let cancelled = false;
+  const fetchControl = async () => {
+    setLoadingControl(true);
+    const { data, error } = await supabase
+      .from("workflow_controls")
+      .select("*")
+      .eq("workflow_key", WORKFLOW_KEY)
+      .maybeSingle();
 
-    const init = async () => {
-      setLoadingControl(true);
+    if (error) {
+      showError(error.message);
+      setLoadingControl(false);
+      return;
+    }
 
-      try {
-        // Try to fetch control row
-        const { data, error } = await supabase
-          .from("workflow_controls")
-          .select("*")
-          .eq("workflow_key", WORKFLOW_KEY)
-          .maybeSingle();
+    if (data) {
+      setControl(data as WorkflowControl);
+    } else {
+      // insert default row
+      const { data: inserted, error: insertError } = await supabase
+        .from("workflow_controls")
+        .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
+        .select()
+        .single();
 
-        if (error) {
-          // If error code is 42P01 (undefined_table), table is missing -> create it via edge function
-          if (error && (error as any).code === '42P01') {
-            try {
-              await supabase.functions.invoke('init-workflow-table');
-              if (!cancelled) {
-                // Retry fetch after creating table
-                const { data: freshData, error: freshError } = await supabase
-                  .from("workflow_controls")
-                  .select("*")
-                  .eq("workflow_key", WORKFLOW_KEY)
-                  .maybeSingle();
-                if (!freshError && freshData) {
-                  setControl(freshData as WorkflowControl);
-                }
-              }
-            } catch (initErr: any) {
-              console.error("Failed to create workflow table:", initErr);
-              showError("Không thể tạo bảng workflow tự động. Vui lòng liên hệ admin.");
-            }
-          } else {
-            showError(error.message);
-          }
-          return;
-        }
-
-        if (data) {
-          setControl(data as WorkflowControl);
-        } else {
-          // Create default row if none exists
-          const { data: inserted, error: insertError } = await supabase
-            .from("workflow_controls")
-            .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
-            .select()
-            .single();
-
-          if (insertError) {
-            showError(insertError.message);
-          } else if (inserted) {
-            setControl(inserted as WorkflowControl);
-          }
-        }
-      } finally {
-        if (!cancelled) setLoadingControl(false);
+      if (insertError) {
+        showError(insertError.message);
+      } else {
+        setControl(inserted as WorkflowControl);
       }
-    };
+    }
+    setLoadingControl(false);
+  };
 
-    init();
-    return () => { cancelled = true; };
+  const initTable = async () => {
+    setLoadingControl(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("init-workflow-table");
+      if (error) {
+        showError("Không thể khởi tạo bảng workflow. Lỗi: " + error.message);
+      } else {
+        showSuccess("Đã khởi tạo bảng workflow thành công. Đang tải lại...");
+        await fetchControl();
+      }
+    } catch (err: any) {
+      showError("Lỗi khi gọi function khởi tạo: " + err.message);
+    } finally {
+      setLoadingControl(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchControl().catch(() => {
+      // if fetching fails, prompt init
+    });
   }, []);
 
   const workflowMode: WorkflowMode = control?.mode || "running";
@@ -260,15 +250,17 @@ const AutomationWorkflow = () => {
           </div>
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            {/* Status badge */}
             <div
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${
                 isPaused ? "border-orange-200 bg-orange-50 text-orange-700" : "border-teal-200 bg-teal-50 text-teal-700"
               }`}
             >
               <span className={`h-2 w-2 rounded-full ${isPaused ? "bg-orange-500" : "bg-teal-500"}`} />
-              {loadingControl ? "Đang tải trạng thái..." : isPaused ? "Workflow đang tạm dừng" : "Workflow đang hoạt động"}
+              {loadingControl ? "Đang tải..." : isPaused ? "Đã tạm dừng" : "Đang hoạt động"}
             </div>
 
+            {/* Pause/Resume button */}
             <button
               type="button"
               onClick={handleToggleWorkflow}
@@ -278,10 +270,24 @@ const AutomationWorkflow = () => {
               }`}
             >
               {isPaused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
-              {savingControl ? "Đang cập nhật..." : isPaused ? "Tiếp tục workflow" : "Tạm dừng workflow"}
+              {savingControl ? "Đang cập nhật..." : isPaused ? "Tiếp tục" : "Tạm dừng"}
             </button>
           </div>
         </div>
+
+        {/* Init button when loading failed */}
+        {!control && !loadingControl && (
+          <div className="mx-6 mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            <p className="font-semibold">Chưa thể kết nối đến bảng workflow.</p>
+            <p className="mt-1">Hãy nhấn nút bên dưới để tự động tạo bảng cần thiết trong database.</p>
+            <button
+              onClick={initTable}
+              className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-700"
+            >
+              Khởi tạo bảng workflow
+            </button>
+          </div>
+        )}
 
         <div className="border-t border-[#f6f1e8] bg-[#fcfaf6] p-4 sm:p-6">
           <div className="mb-4 rounded-[1.5rem] border border-[#efe8dd] bg-white px-4 py-3 text-sm text-slate-600">
@@ -390,11 +396,9 @@ const AutomationWorkflow = () => {
 
         <div className="mt-6 space-y-3">
           {[
-            isPaused
-              ? "Workflow tổng đang tạm dừng nên các bước đang chạy cũng sẽ dừng theo."
-              : "Workflow tổng đang hoạt động và sẵn sàng tiếp tục các bước tự động.",
-            "Admin có thể dùng nút điều khiển phía trên để dừng hoặc tiếp tục toàn bộ luồng.",
-            "Khi nối backend sâu hơn, trạng thái này sẽ điều khiển luôn các job tự động thực tế.",
+            "Workflow giờ được sắp xếp theo luồng dọc để dễ theo dõi và dễ mở rộng.",
+            "Mỗi bước thể hiện rõ trạng thái hiện tại và nội dung đang xử lý.",
+            "Khi nối backend thật, từng bước có thể hiển thị dữ liệu realtime và hành động trực tiếp.",
           ].map((item) => (
             <div key={item} className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm leading-6 text-slate-600">
               {item}
@@ -404,14 +408,12 @@ const AutomationWorkflow = () => {
 
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-[1.5rem] bg-[#f7fbfa] p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Mode</p>
-            <p className="mt-2 text-2xl font-black text-slate-900">{isPaused ? "Pause" : "Run"}</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Queue</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">08</p>
           </div>
           <div className="rounded-[1.5rem] bg-[#fff8f2] p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Updated</p>
-            <p className="mt-2 text-sm font-black text-slate-900">
-              {control?.updated_at ? new Date(control.updated_at).toLocaleString("vi-VN") : "--"}
-            </p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Success</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">93%</p>
           </div>
         </div>
       </aside>
