@@ -35,7 +35,7 @@ const steps: WorkflowStep[] = [
     status: "running",
     icon: Search,
     accent: "from-[#ffedd5] to-[#fff7ed] text-[#f97316]",
-    position: "left-[4%] top-[16%]",
+    position: "left-[6%] top-[12%]",
   },
   {
     id: "queue",
@@ -45,7 +45,7 @@ const steps: WorkflowStep[] = [
     status: "ready",
     icon: PlayCircle,
     accent: "from-[#ecfeff] to-[#f0fdfa] text-[#0D9488]",
-    position: "left-[28%] top-[10%]",
+    position: "left-[30%] top-[12%]",
   },
   {
     id: "writer",
@@ -55,7 +55,7 @@ const steps: WorkflowStep[] = [
     status: "running",
     icon: FileText,
     accent: "from-[#eff6ff] to-[#f8fbff] text-[#2563eb]",
-    position: "left-[52%] top-[18%]",
+    position: "left-[54%] top-[12%]",
   },
   {
     id: "image",
@@ -65,7 +65,7 @@ const steps: WorkflowStep[] = [
     status: "ready",
     icon: ImageIcon,
     accent: "from-[#f5f3ff] to-[#faf5ff] text-[#7c3aed]",
-    position: "left-[74%] top-[12%]",
+    position: "left-[78%] top-[12%]",
   },
   {
     id: "review",
@@ -75,7 +75,7 @@ const steps: WorkflowStep[] = [
     status: "waiting",
     icon: CheckCircle2,
     accent: "from-[#fef3c7] to-[#fffbeb] text-[#d97706]",
-    position: "left-[19%] top-[58%]",
+    position: "left-[18%] top-[58%]",
   },
   {
     id: "schedule",
@@ -85,7 +85,7 @@ const steps: WorkflowStep[] = [
     status: "ready",
     icon: CalendarClock,
     accent: "from-[#ecfccb] to-[#f7fee7] text-[#65a30d]",
-    position: "left-[48%] top-[64%]",
+    position: "left-[42%] top-[58%]",
   },
   {
     id: "publish",
@@ -95,7 +95,7 @@ const steps: WorkflowStep[] = [
     status: "done",
     icon: Send,
     accent: "from-[#dcfce7] to-[#f0fdf4] text-[#16a34a]",
-    position: "left-[76%] top-[58%]",
+    position: "left-[66%] top-[58%]",
   },
 ];
 
@@ -135,12 +135,12 @@ const statusMap: Record<
 };
 
 const connectors = [
-  { id: "c1", d: "M 125 140 C 170 120, 240 116, 300 120" },
-  { id: "c2", d: "M 370 120 C 430 122, 505 140, 555 150" },
-  { id: "c3", d: "M 635 145 C 700 122, 760 114, 820 122" },
-  { id: "c4", d: "M 875 175 C 872 260, 820 315, 720 380" },
-  { id: "c5", d: "M 240 392 C 300 405, 395 410, 500 404" },
-  { id: "c6", d: "M 590 405 C 640 405, 700 404, 760 402" },
+  { id: "c1", d: "M 150 126 H 360" },
+  { id: "c2", d: "M 385 126 H 595" },
+  { id: "c3", d: "M 620 126 H 830" },
+  { id: "c4", d: "M 890 150 V 330 H 275 V 362" },
+  { id: "c5", d: "M 330 362 H 510" },
+  { id: "c6", d: "M 565 362 H 745" },
 ];
 
 const AutomationWorkflow = () => {
@@ -190,6 +190,7 @@ const AutomationWorkflow = () => {
                   stroke="#d8cfc1"
                   strokeWidth="3"
                   strokeLinecap="round"
+                  strokeLinejoin="round"
                   fill="none"
                   initial={{ pathLength: 0.15, opacity: 0.35 }}
                   animate={{ pathLength: 1, opacity: 1 }}
@@ -201,10 +202,10 @@ const AutomationWorkflow = () => {
             <div className="absolute inset-0 hidden lg:block">
               <motion.div
                 animate={{
-                  x: [110, 305, 570, 830, 735, 515, 770],
-                  y: [140, 120, 150, 122, 402, 404, 402],
+                  x: [150, 360, 595, 830, 890, 275, 510, 745],
+                  y: [126, 126, 126, 126, 150, 362, 362, 362],
                 }}
-                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+                transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute h-3.5 w-3.5 rounded-full bg-[#f97316] shadow-[0_0_18px_rgba(249,115,22,0.55)]"
               />
             </div>
