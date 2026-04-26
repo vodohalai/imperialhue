@@ -10,7 +10,6 @@ import {
   PlayCircle,
   Search,
   Send,
-  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -152,6 +151,8 @@ const AutomationWorkflow = () => {
 
   useEffect(() => {
     const fetchControl = async () => {
+      setLoadingControl(true);
+
       const { data, error } = await supabase
         .from("workflow_controls")
         .select("*")
@@ -159,25 +160,27 @@ const AutomationWorkflow = () => {
         .maybeSingle();
 
       if (error) {
-        showError(error.message);
+        showError("Chưa có bảng workflow_controls trong Supabase");
         setLoadingControl(false);
         return;
       }
 
       if (data) {
         setControl(data as WorkflowControl);
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from("workflow_controls")
-          .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
-          .select()
-          .single();
+        setLoadingControl(false);
+        return;
+      }
 
-        if (insertError) {
-          showError(insertError.message);
-        } else {
-          setControl(inserted as WorkflowControl);
-        }
+      const { data: inserted, error: insertError } = await supabase
+        .from("workflow_controls")
+        .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
+        .select()
+        .single();
+
+      if (insertError) {
+        showError(insertError.message);
+      } else {
+        setControl(inserted as WorkflowControl);
       }
 
       setLoadingControl(false);
@@ -190,7 +193,7 @@ const AutomationWorkflow = () => {
   const isPaused = workflowMode === "paused";
 
   const handleToggleWorkflow = async () => {
-    if (!control) return;
+    if (!control || savingControl) return;
 
     const nextMode: WorkflowMode = isPaused ? "running" : "paused";
     setSavingControl(true);
@@ -231,7 +234,11 @@ const AutomationWorkflow = () => {
           </div>
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${isPaused ? "border-orange-200 bg-orange-50 text-orange-700" : "border-teal-200 bg-teal-50 text-teal-700"}`}>
+            <div
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${
+                isPaused ? "border-orange-200 bg-orange-50 text-orange-700" : "border-teal-200 bg-teal-50 text-teal-700"
+              }`}
+            >
               <span className={`h-2 w-2 rounded-full ${isPaused ? "bg-orange-500" : "bg-teal-500"}`} />
               {loadingControl ? "Đang tải trạng thái..." : isPaused ? "Workflow đang tạm dừng" : "Workflow đang hoạt động"}
             </div>
@@ -241,9 +248,7 @@ const AutomationWorkflow = () => {
               onClick={handleToggleWorkflow}
               disabled={loadingControl || savingControl || !control}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                isPaused
-                  ? "bg-[#0D9488] shadow-teal-100 hover:bg-[#0b7a6f]"
-                  : "bg-[#f97316] shadow-orange-200 hover:bg-[#ea6a0f]"
+                isPaused ? "bg-[#0D9488] shadow-teal-100 hover:bg-[#0b7a6f]" : "bg-[#f97316] shadow-orange-200 hover:bg-[#ea6a0f]"
               }`}
             >
               {isPaused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
@@ -264,14 +269,15 @@ const AutomationWorkflow = () => {
               {steps.map((step, index) => {
                 const Icon = step.icon;
                 const baseState = statusMap[step.status];
-                const state = isPaused && step.status === "running"
-                  ? {
-                      label: "Paused",
-                      badge: "bg-orange-50 text-orange-700 border-orange-200",
-                      dot: "bg-orange-500",
-                      border: "border-orange-200",
-                    }
-                  : baseState;
+                const state =
+                  isPaused && step.status === "running"
+                    ? {
+                        label: "Paused",
+                        badge: "bg-orange-50 text-orange-700 border-orange-200",
+                        dot: "bg-orange-500",
+                        border: "border-orange-200",
+                      }
+                    : baseState;
                 const isSelected = selectedId === step.id;
                 const isLast = index === steps.length - 1;
 
@@ -325,29 +331,29 @@ const AutomationWorkflow = () => {
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#f97316]">Module Detail</p>
             <h3 className="mt-1 text-xl font-black text-slate-900">{selectedStep.title}</h3>
           </div>
-          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
-            isPaused && selectedStep.status === "running"
-              ? "border-orange-200 bg-orange-50 text-orange-700"
-              : statusMap[selectedStep.status].badge
-          }`}>
+          <div
+            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${
+              isPaused && selectedStep.status === "running"
+                ? "border-orange-200 bg-orange-50 text-orange-700"
+                : statusMap[selectedStep.status].badge
+            }`}
+          >
             <span
               className={`h-2 w-2 rounded-full ${
-                isPaused && selectedStep.status === "running"
-                  ? "bg-orange-500"
-                  : statusMap[selectedStep.status].dot
+                isPaused && selectedStep.status === "running" ? "bg-orange-500" : statusMap[selectedStep.status].dot
               } ${!isPaused && selectedStep.status === "running" ? "animate-pulse" : ""}`}
             />
-            {isPaused && selectedStep.status === "running"
-              ? "Paused"
-              : statusMap[selectedStep.status].label}
+            {isPaused && selectedStep.status === "running" ? "Paused" : statusMap[selectedStep.status].label}
           </div>
         </div>
 
-        <div className={`mt-5 rounded-[1.75rem] border ${
-          isPaused && selectedStep.status === "running"
-            ? "border-orange-200 bg-orange-50"
-            : statusMap[selectedStep.status].border
-        } ${isPaused && selectedStep.status === "running" ? "" : selectedStep.softBg} p-5`}>
+        <div
+          className={`mt-5 rounded-[1.75rem] border ${
+            isPaused && selectedStep.status === "running"
+              ? "border-orange-200 bg-orange-50"
+              : statusMap[selectedStep.status].border
+          } ${isPaused && selectedStep.status === "running" ? "" : selectedStep.softBg} p-5`}
+        >
           <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-white ${selectedStep.accent} shadow-sm`}>
             <selectedStep.icon className="h-7 w-7" />
           </div>
