@@ -1,4 +1,4 @@
-import { Globe, Menu } from "lucide-react";
+import { Globe } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { TranslationKey } from "@/i18n/translations";
@@ -18,15 +18,15 @@ const SiteHeader = () => {
 
   return (
     <header className="sticky top-0 z-50 border-b border-[#ece6dd] bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#0D9488]/20 bg-[#f2fbfa] text-[#0D9488]">
-            <span className="text-lg font-bold">I</span>
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-3 sm:px-6 sm:py-4 lg:px-8">
+        <Link to="/" className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border border-[#0D9488]/20 bg-[#f2fbfa] text-[#0D9488] sm:h-12 sm:w-12">
+            <span className="text-sm font-bold sm:text-lg">I</span>
           </div>
           <div>
-            <p className="text-[11px] font-semibold tracking-[0.35em] text-[#0D9488]">THE</p>
-            <h1 className="text-lg font-extrabold leading-none text-[#0f766e] sm:text-2xl">IMPERIAL HUE</h1>
-            <p className="text-[11px] font-semibold tracking-[0.3em] text-[#f97316]">BOUTIQUE HOTEL</p>
+            <p className="text-[9px] font-semibold tracking-[0.3em] text-[#0D9488] sm:text-[11px] sm:tracking-[0.35em]">THE</p>
+            <h1 className="text-sm font-extrabold leading-none text-[#0f766e] sm:text-lg lg:text-2xl">IMPERIAL HUE</h1>
+            <p className="text-[9px] font-semibold tracking-[0.25em] text-[#f97316] sm:text-[11px] sm:tracking-[0.3em]">BOUTIQUE HOTEL</p>
           </div>
         </Link>
 
@@ -41,20 +41,17 @@ const SiteHeader = () => {
           })}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={() => setLang(lang === "vi" ? "en" : "vi")}
-            className="hidden items-center gap-2 rounded-full border border-[#e7e0d6] bg-white px-4 py-2 text-sm font-medium text-slate-600 sm:flex"
+            className="hidden items-center gap-2 rounded-full border border-[#e7e0d6] bg-white px-3 py-2 text-xs font-medium text-slate-600 sm:flex sm:px-4 sm:py-2 sm:text-sm"
           >
-            <Globe className="h-4 w-4" />
+            <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             {lang === "vi" ? "VI" : "EN"}
           </button>
-          <Link to="/contact" className="rounded-full bg-[#f97316] px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f]">
+          <Link to="/contact" className="rounded-full bg-[#f97316] px-4 py-2.5 text-xs font-semibold text-white shadow-lg shadow-orange-200 transition hover:bg-[#ea6a0f] sm:px-5 sm:py-3 sm:text-sm">
             {t("nav.bookNow")}
           </Link>
-          <button className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f97316] text-white lg:hidden">
-            <Menu className="h-6 w-6" />
-          </button>
         </div>
       </div>
     </header>
