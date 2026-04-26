@@ -1,42 +1,28 @@
-import { Bot, CalendarClock, FileStack, Sparkles, Target } from "lucide-react";
+import { CalendarClock, FileStack, Sparkles, Target } from "lucide-react";
 import { Link } from "react-router-dom";
+import AutomationWorkflow from "@/components/admin/AutomationWorkflow";
 
 const stats = [
   {
     title: "Chủ đề SEO",
     value: "Sẵn sàng kết nối",
-    desc: "Nơi AI sẽ nghiên cứu các chủ đề về Huế như du lịch, ẩm thực và địa điểm.",
+    desc: "AI sẽ nghiên cứu các chủ đề về du lịch, ẩm thực, địa điểm và trải nghiệm ở Huế.",
     icon: Target,
     tone: "bg-orange-50 text-orange-600",
   },
   {
     title: "Bài AI chờ duyệt",
-    value: "Quy trình bán tự động",
-    desc: "Các bài AI tạo ra sẽ được đưa vào hàng chờ để bạn xem lại trước khi đăng.",
+    value: "Kiểm soát bởi admin",
+    desc: "Mọi bài AI tạo ra sẽ nằm trong hàng chờ để bạn xem lại trước khi lên lịch đăng.",
     icon: FileStack,
     tone: "bg-teal-50 text-teal-600",
   },
   {
     title: "Lịch đăng 06:00",
     value: "Asia/Ho_Chi_Minh",
-    desc: "Những bài đã duyệt sẽ được tự động đăng theo lịch mỗi ngày lúc 06:00 sáng.",
+    desc: "Bài đã duyệt sẽ tự động xuất bản mỗi ngày lúc 06:00 sáng theo giờ Việt Nam.",
     icon: CalendarClock,
     tone: "bg-sky-50 text-sky-600",
-  },
-];
-
-const actions = [
-  {
-    title: "Nghiên cứu chủ đề SEO",
-    desc: "AI tìm các chủ đề tiềm năng liên quan Huế để chuẩn bị cho lịch nội dung tiếp theo.",
-  },
-  {
-    title: "Tạo bài và ảnh bằng AI",
-    desc: "AI sinh tiêu đề, nội dung, ảnh bìa và lưu vào hệ thống để admin duyệt.",
-  },
-  {
-    title: "Duyệt và lên lịch đăng",
-    desc: "Chỉ những bài đã được duyệt mới được đưa vào lịch đăng tự động buổi sáng.",
   },
 ];
 
@@ -44,16 +30,17 @@ const AdminAutomation = () => {
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
       <div className="border-b border-[#ece6dd] bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-5 sm:px-6 lg:px-8">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.25em] text-[#f97316]">Automation</p>
             <h1 className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">AI Blog Automation</h1>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Khu quản lý dành riêng cho quy trình nghiên cứu SEO, tạo bài viết và lên lịch đăng tự động cho blog.
+              Theo dõi trực quan toàn bộ quy trình từ nghiên cứu SEO, viết bài, tạo ảnh, duyệt nội dung đến đăng bài tự động.
             </p>
           </div>
-          <div className="hidden rounded-full bg-[#0D9488]/10 px-4 py-2 text-sm font-bold text-[#0D9488] md:inline-flex">
-            Semi-auto mode
+          <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#0D9488]/10 px-4 py-2 text-sm font-bold text-[#0D9488]">
+            <Sparkles className="h-4 w-4" />
+            Semi-auto workflow
           </div>
         </div>
       </div>
@@ -75,28 +62,24 @@ const AdminAutomation = () => {
           })}
         </section>
 
-        <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0D9488]/10 text-[#0D9488]">
-                <Bot className="h-6 w-6" />
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f97316]">Quy trình</p>
-                <h2 className="text-xl font-black text-slate-900">Luồng vận hành AI</h2>
-              </div>
-            </div>
+        <AutomationWorkflow />
 
-            <div className="mt-6 space-y-4">
-              {actions.map((action, index) => (
-                <div key={action.title} className="flex gap-4 rounded-[1.5rem] bg-[#fbfaf7] p-4">
+        <section className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+          <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#f97316]">Cách dùng</p>
+            <h2 className="mt-2 text-xl font-black text-slate-900">Bạn sẽ thao tác như thế nào?</h2>
+
+            <div className="mt-5 space-y-4">
+              {[
+                "Bước 1: AI nghiên cứu chủ đề SEO mới liên quan đến Huế.",
+                "Bước 2: AI tạo bài viết và ảnh bìa theo chủ đề đã chọn.",
+                "Bước 3: Bạn duyệt bài, sau đó hệ thống tự đăng lúc 06:00.",
+              ].map((item, index) => (
+                <div key={item} className="flex gap-4 rounded-[1.5rem] bg-[#fbfaf7] p-4">
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#0D9488] text-sm font-black text-white">
                     {index + 1}
                   </div>
-                  <div>
-                    <h3 className="text-sm font-black text-slate-900">{action.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-slate-600">{action.desc}</p>
-                  </div>
+                  <p className="text-sm leading-6 text-slate-700">{item}</p>
                 </div>
               ))}
             </div>
@@ -104,30 +87,23 @@ const AdminAutomation = () => {
 
           <div className="space-y-6">
             <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f97316]/10 text-[#f97316]">
-                  <Sparkles className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-slate-900">Trạng thái hiện tại</h2>
-                  <p className="text-sm text-slate-500">Phần giao diện quản lý đã sẵn sàng để nối với dữ liệu thật.</p>
-                </div>
-              </div>
+              <h2 className="text-lg font-black text-slate-900">Trạng thái hiện tại</h2>
+              <p className="mt-1 text-sm text-slate-500">Phần workflow đã được hiển thị trực quan để bạn dễ hình dung toàn bộ luồng automation.</p>
 
               <div className="mt-5 space-y-3">
                 <div className="rounded-2xl border border-dashed border-[#d8e7e4] bg-[#f7fbfa] p-4 text-sm text-slate-600">
-                  Chưa có dữ liệu automation được kết nối.
+                  Các module hiện đang ở chế độ trình bày trực quan, sẵn sàng để nối dữ liệu thật ở bước tiếp theo.
                 </div>
                 <div className="rounded-2xl border border-dashed border-[#f3dcc8] bg-[#fff8f2] p-4 text-sm text-slate-600">
-                  Bước tiếp theo là nối các nút này với Supabase để AI bắt đầu chạy thật.
+                  Khi kết nối xong backend, mỗi module sẽ hiển thị số lượng thật, trạng thái thật và thao tác trực tiếp.
                 </div>
               </div>
             </div>
 
             <div className="rounded-[2rem] bg-[#0D9488] p-6 text-white shadow-sm">
-              <h2 className="text-xl font-black">Đi tiếp sang bước vận hành</h2>
+              <h2 className="text-xl font-black">Bước tiếp theo</h2>
               <p className="mt-3 text-sm leading-6 text-white/85">
-                Sau khi hoàn tất dữ liệu và functions, tab này sẽ trở thành nơi điều khiển toàn bộ hệ thống AI blog.
+                Tiếp theo mình có thể nối workflow này với dữ liệu Supabase để bạn bắt đầu bấm nút nghiên cứu topic, tạo bài AI và lên lịch thật.
               </p>
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                 <Link
