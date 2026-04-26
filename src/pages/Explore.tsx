@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
-import { ArrowRight, Calendar } from "lucide-react";
+import { AlertTriangle, ArrowRight, Calendar, RefreshCcw } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,20 +8,23 @@ import { useLanguage } from "@/i18n/LanguageContext";
 import type { Article } from "@/integrations/supabase/types";
 
 const fetchArticles = async (): Promise<Article[]> => {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("articles")
     .select("*")
     .eq("status", "published")
     .order("published_at", { ascending: false });
+  if (error) throw error;
   return data || [];
 };
 
 const Explore = () => {
   const { t } = useLanguage();
-  const { data: articles = [], isLoading } = useQuery({
+  const { data: articles = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["published-articles"],
     queryFn: fetchArticles,
-    staleTime: 5 * 60 * 1000, // 5 phút giữ cache
+    staleTime: 30 * 1000, // 30 giây để nhanh chóng hiển thị bài mới
+    retry: 2,
+    refetchOnWindowFocus: true,
   });
 
   return (
@@ -34,6 +37,21 @@ const Explore = () => {
             <h1 className="mt-4 text-4xl font-black text-slate-900">{t("explore.pageTitle")}</h1>
             <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">{t("explore.pageDesc")}</p>
           </div>
+
+          {isError && (
+            <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center text-red-700">
+              <AlertTriangle className="mx-auto h-8 w-8 mb-2" />
+              <p className="font-bold">Không thể tải bài viết</p>
+              <p className="text-sm mt-1">{(error as Error)?.message || "Đã xảy ra lỗi không xác định."}</p>
+              <button
+                onClick={() => refetch()}
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-red-100 px-5 py-2 text-sm font-semibold text-red-700 hover:bg-red-200 transition"
+              >
+                <RefreshCcw className="h-4 w-4" />
+                Thử lại
+              </button>
+            </div>
+          )}
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {isLoading ? (
