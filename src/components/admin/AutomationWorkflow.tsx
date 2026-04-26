@@ -138,7 +138,7 @@ const connectors = [
   { id: "c1", d: "M 150 126 H 360" },
   { id: "c2", d: "M 385 126 H 595" },
   { id: "c3", d: "M 620 126 H 830" },
-  { id: "c4", d: "M 890 150 V 350 H 215" },
+  { id: "c4", d: "M 890 150 V 350 H 160" },
   { id: "c5", d: "M 270 350 H 450" },
   { id: "c6", d: "M 505 350 H 685" },
 ];
@@ -202,7 +202,7 @@ const AutomationWorkflow = () => {
             <div className="absolute inset-0 hidden lg:block">
               <motion.div
                 animate={{
-                  x: [150, 360, 595, 830, 890, 215, 450, 685],
+                  x: [150, 360, 595, 830, 890, 160, 450, 685],
                   y: [126, 126, 126, 126, 150, 350, 350, 350],
                 }}
                 transition={{ duration: 11, repeat: Infinity, ease: "easeInOut" }}
