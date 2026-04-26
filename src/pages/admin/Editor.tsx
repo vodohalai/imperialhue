@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Save, Sparkles, Send, Image as ImageIcon, Loader2, Menu, X } from "lucide-react";
+import { ArrowLeft, Save, Sparkles, Send, Image as ImageIcon, Loader2 } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import type { Article, ArticleStatus } from "@/integrations/supabase/types";
+import AdminImageUpload from "@/components/AdminImageUpload";
 
 const AdminEditor = () => {
   const { id } = useParams();
@@ -12,7 +13,7 @@ const AdminEditor = () => {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
-  
+
   const [form, setForm] = useState<Partial<Article>>({
     title: "",
     content: "",
@@ -20,7 +21,7 @@ const AdminEditor = () => {
     image_url: "",
     status: "draft",
     category: "Du lịch",
-    slug: ""
+    slug: "",
   });
 
   useEffect(() => {
@@ -29,6 +30,10 @@ const AdminEditor = () => {
 
   const fetchArticle = async () => {
     const { data, error } = await supabase.from("articles").select("*").eq("id", id).single();
+    if (error) {
+      showError(error.message);
+      return;
+    }
     if (data) setForm(data);
   };
 
@@ -46,24 +51,22 @@ const AdminEditor = () => {
     setAiLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-article", {
-        body: { prompt: aiPrompt }
+        body: { prompt: aiPrompt },
       });
-      
+
       if (error) {
-        const errorDetails = error.message;
-        console.error("Edge Function Error:", error);
-        throw new Error(errorDetails);
+        throw new Error(error.message);
       }
-      
+
       if (data) {
-        setForm({
-          ...form,
+        setForm((prev) => ({
+          ...prev,
           title: data.title,
           content: data.content,
           excerpt: data.excerpt,
           category: data.category,
-          slug: generateSlug(data.title)
-        });
+          slug: generateSlug(data.title),
+        }));
         showSuccess("AI đã tạo nội dung xong!");
       }
     } catch (err: any) {
@@ -79,8 +82,8 @@ const AdminEditor = () => {
       const payload = {
         ...form,
         status,
-        published_at: status === 'published' ? new Date().toISOString() : null,
-        updated_at: new Date().toISOString()
+        published_at: status === "published" ? new Date().toISOString() : null,
+        updated_at: new Date().toISOString(),
       };
 
       let error;
@@ -91,7 +94,7 @@ const AdminEditor = () => {
       }
 
       if (error) throw error;
-      showSuccess(status === 'published' ? "Đã xuất bản bài viết!" : "Đã lưu bản nháp");
+      showSuccess(status === "published" ? "Đã xuất bản bài viết!" : "Đã lưu bản nháp");
       navigate("/admin");
     } catch (err: any) {
       showError(err.message);
@@ -102,28 +105,27 @@ const AdminEditor = () => {
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
-      {/* Mobile header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-[#ece6dd] px-4 py-3 lg:hidden">
+      <header className="sticky top-0 z-30 border-b border-[#ece6dd] bg-white/80 px-4 py-3 backdrop-blur-md lg:hidden">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate("/admin")} className="p-1.5 hover:bg-slate-100 rounded-full transition">
+            <button onClick={() => navigate("/admin")} className="rounded-full p-1.5 transition hover:bg-slate-100">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="font-black text-slate-900 text-sm">{id ? "Chỉnh sửa" : "Viết bài mới"}</h1>
+            <h1 className="text-sm font-black text-slate-900">{id ? "Chỉnh sửa" : "Viết bài mới"}</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button 
-              onClick={() => handleSave('draft')}
+            <button
+              onClick={() => handleSave("draft")}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full border border-[#ece6dd] font-bold text-slate-600 hover:bg-slate-50 transition text-xs"
+              className="flex items-center gap-1.5 rounded-full border border-[#ece6dd] px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50"
             >
               <Save className="h-3.5 w-3.5" />
               Lưu
             </button>
-            <button 
-              onClick={() => handleSave('published')}
+            <button
+              onClick={() => handleSave("published")}
               disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#0D9488] font-bold text-white shadow-lg shadow-teal-100 hover:bg-[#0b7a6f] transition text-xs"
+              className="flex items-center gap-1.5 rounded-full bg-[#0D9488] px-3 py-2 text-xs font-bold text-white shadow-lg shadow-teal-100 transition hover:bg-[#0b7a6f]"
             >
               <Send className="h-3.5 w-3.5" />
               Đăng
@@ -132,29 +134,28 @@ const AdminEditor = () => {
         </div>
       </header>
 
-      {/* Desktop header */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-[#ece6dd] px-8 py-4 hidden lg:block">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="sticky top-0 z-30 hidden border-b border-[#ece6dd] bg-white/80 px-8 py-4 backdrop-blur-md lg:block">
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={() => navigate("/admin")} className="p-2 hover:bg-slate-100 rounded-full transition">
+            <button onClick={() => navigate("/admin")} className="rounded-full p-2 transition hover:bg-slate-100">
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <h1 className="font-black text-slate-900 text-xl">{id ? "Chỉnh sửa bài viết" : "Viết bài mới"}</h1>
+            <h1 className="text-xl font-black text-slate-900">{id ? "Chỉnh sửa bài viết" : "Viết bài mới"}</h1>
           </div>
-          
+
           <div className="flex items-center gap-3">
-            <button 
-              onClick={() => handleSave('draft')}
+            <button
+              onClick={() => handleSave("draft")}
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full border border-[#ece6dd] font-bold text-slate-600 hover:bg-slate-50 transition text-sm"
+              className="flex items-center gap-2 rounded-full border border-[#ece6dd] px-6 py-2.5 text-sm font-bold text-slate-600 transition hover:bg-slate-50"
             >
               <Save className="h-4 w-4" />
               Lưu nháp
             </button>
-            <button 
-              onClick={() => handleSave('published')}
+            <button
+              onClick={() => handleSave("published")}
               disabled={loading}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-[#0D9488] font-bold text-white shadow-lg shadow-teal-100 hover:bg-[#0b7a6f] transition text-sm"
+              className="flex items-center gap-2 rounded-full bg-[#0D9488] px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-teal-100 transition hover:bg-[#0b7a6f]"
             >
               <Send className="h-4 w-4" />
               Đăng ngay
@@ -163,45 +164,43 @@ const AdminEditor = () => {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-6 lg:gap-8">
+      <main className="mx-auto grid max-w-7xl grid-cols-1 gap-6 p-4 sm:p-6 lg:grid-cols-[1fr_350px] lg:gap-8 lg:p-8">
         <div className="space-y-5 lg:space-y-6">
-          {/* AI Assistant - simplified on mobile */}
-          <div className="bg-[#f0f9f8] border border-[#d1e9e7] rounded-[1.5rem] lg:rounded-[2.5rem] p-5 lg:p-8">
-            <div className="flex items-center gap-3 mb-3 lg:mb-4">
-              <div className="h-8 w-8 lg:h-10 lg:w-10 bg-[#0D9488] rounded-xl flex items-center justify-center text-white">
+          <div className="rounded-[1.5rem] border border-[#d1e9e7] bg-[#f0f9f8] p-5 lg:rounded-[2.5rem] lg:p-8">
+            <div className="mb-3 flex items-center gap-3 lg:mb-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#0D9488] text-white lg:h-10 lg:w-10">
                 <Sparkles className="h-4 w-4 lg:h-5 lg:w-5" />
               </div>
               <div>
-                <h3 className="font-black text-slate-900 text-sm lg:text-base">AI Writing Assistant</h3>
-                <p className="text-xs lg:text-sm text-slate-500 hidden sm:block">Nhập chủ đề và để AI soạn thảo bài viết</p>
+                <h3 className="text-sm font-black text-slate-900 lg:text-base">AI Writing Assistant</h3>
+                <p className="hidden text-xs text-slate-500 sm:block lg:text-sm">Nhập chủ đề và để AI soạn thảo bài viết</p>
               </div>
             </div>
             <div className="flex gap-2 lg:gap-3">
-              <input 
-                type="text" 
+              <input
+                type="text"
                 placeholder="Chủ đề bài viết..."
-                className="flex-1 rounded-xl lg:rounded-2xl border border-[#d1e9e7] bg-white px-4 py-3 text-xs lg:text-sm outline-none"
+                className="flex-1 rounded-xl border border-[#d1e9e7] bg-white px-4 py-3 text-xs outline-none lg:rounded-2xl lg:text-sm"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
               />
-              <button 
+              <button
                 onClick={handleAiGenerate}
                 disabled={aiLoading}
-                className="bg-[#0D9488] text-white px-4 lg:px-8 rounded-xl lg:rounded-2xl font-bold flex items-center gap-2 transition hover:opacity-90 disabled:opacity-50 text-xs lg:text-sm"
+                className="flex items-center gap-2 rounded-xl bg-[#0D9488] px-4 text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-50 lg:rounded-2xl lg:px-8 lg:text-sm"
               >
-                {aiLoading ? <Loader2 className="h-4 w-4 lg:h-5 lg:w-5 animate-spin" /> : <Sparkles className="h-4 w-4 lg:h-5 lg:w-5" />}
+                {aiLoading ? <Loader2 className="h-4 w-4 animate-spin lg:h-5 lg:w-5" /> : <Sparkles className="h-4 w-4 lg:h-5 lg:w-5" />}
                 <span className="hidden sm:inline">Tạo nội dung</span>
               </button>
             </div>
           </div>
 
-          {/* Form */}
-          <div className="bg-white rounded-[1.5rem] lg:rounded-[2.5rem] border border-[#ece6dd] p-5 lg:p-8 space-y-5 lg:space-y-6 shadow-sm">
+          <div className="space-y-5 rounded-[1.5rem] border border-[#ece6dd] bg-white p-5 shadow-sm lg:space-y-6 lg:rounded-[2.5rem] lg:p-8">
             <div>
-              <label className="block text-xs lg:text-sm font-bold text-slate-500 mb-1.5 lg:mb-2 uppercase tracking-wider">Tiêu đề bài viết</label>
-              <input 
-                type="text" 
-                className="w-full text-lg lg:text-3xl font-black text-slate-900 outline-none placeholder:text-slate-200"
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 lg:mb-2 lg:text-sm">Tiêu đề bài viết</label>
+              <input
+                type="text"
+                className="w-full text-lg font-black text-slate-900 outline-none placeholder:text-slate-200 lg:text-3xl"
                 placeholder="Nhập tiêu đề hấp dẫn..."
                 value={form.title}
                 onChange={(e) => {
@@ -211,20 +210,20 @@ const AdminEditor = () => {
               />
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:gap-4">
               <div className="flex-1">
-                <label className="block text-xs lg:text-sm font-bold text-slate-500 mb-1.5 lg:mb-2 uppercase tracking-wider">Slug (URL)</label>
-                <input 
-                  type="text" 
-                  className="w-full bg-[#fbfaf7] border border-[#ece6dd] rounded-xl px-3 py-2 text-xs lg:text-sm text-slate-500 font-mono"
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 lg:mb-2 lg:text-sm">Slug (URL)</label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-[#ece6dd] bg-[#fbfaf7] px-3 py-2 text-xs font-mono text-slate-500 lg:text-sm"
                   value={form.slug}
                   readOnly
                 />
               </div>
-              <div className="w-full sm:w-48">
-                <label className="block text-xs lg:text-sm font-bold text-slate-500 mb-1.5 lg:mb-2 uppercase tracking-wider">Danh mục</label>
-                <select 
-                  className="w-full bg-[#fbfaf7] border border-[#ece6dd] rounded-xl px-3 py-2 text-xs lg:text-sm font-bold"
+              <div className="w-full lg:w-48">
+                <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 lg:mb-2 lg:text-sm">Danh mục</label>
+                <select
+                  className="w-full rounded-xl border border-[#ece6dd] bg-[#fbfaf7] px-3 py-2 text-xs font-bold lg:text-sm"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                 >
@@ -238,9 +237,9 @@ const AdminEditor = () => {
             </div>
 
             <div>
-              <label className="block text-xs lg:text-sm font-bold text-slate-500 mb-1.5 lg:mb-2 uppercase tracking-wider">Mô tả ngắn (Excerpt)</label>
-              <textarea 
-                className="w-full bg-[#fbfaf7] border border-[#ece6dd] rounded-xl lg:rounded-2xl px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm outline-none min-h-[80px] lg:min-h-[100px]"
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 lg:mb-2 lg:text-sm">Mô tả ngắn (Excerpt)</label>
+              <textarea
+                className="min-h-[80px] w-full rounded-xl border border-[#ece6dd] bg-[#fbfaf7] px-3 py-2 text-xs outline-none lg:min-h-[100px] lg:rounded-2xl lg:px-4 lg:py-3 lg:text-sm"
                 placeholder="Tóm tắt ngắn gọn nội dung bài viết..."
                 value={form.excerpt}
                 onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
@@ -248,9 +247,9 @@ const AdminEditor = () => {
             </div>
 
             <div>
-              <label className="block text-xs lg:text-sm font-bold text-slate-500 mb-1.5 lg:mb-2 uppercase tracking-wider">Nội dung bài viết (HTML/Text)</label>
-              <textarea 
-                className="w-full bg-[#fbfaf7] border border-[#ece6dd] rounded-xl lg:rounded-2xl px-4 lg:px-6 py-4 lg:py-6 text-sm lg:text-base outline-none min-h-[300px] lg:min-h-[500px] font-medium leading-relaxed"
+              <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500 lg:mb-2 lg:text-sm">Nội dung bài viết (HTML/Text)</label>
+              <textarea
+                className="min-h-[300px] w-full rounded-xl border border-[#ece6dd] bg-[#fbfaf7] px-4 py-4 text-sm font-medium leading-relaxed outline-none lg:min-h-[500px] lg:rounded-2xl lg:px-6 lg:py-6 lg:text-base"
                 placeholder="Bắt đầu viết nội dung ở đây..."
                 value={form.content}
                 onChange={(e) => setForm({ ...form, content: e.target.value })}
@@ -259,91 +258,27 @@ const AdminEditor = () => {
           </div>
         </div>
 
-        {/* Desktop sidebar */}
-        <aside className="hidden lg:block space-y-6">
-          <div className="bg-white rounded-[2rem] border border-[#ece6dd] p-6 shadow-sm">
-            <h3 className="font-black text-slate-900 mb-4 flex items-center gap-2">
+        <aside className="space-y-6">
+          <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
+            <h3 className="mb-4 flex items-center gap-2 font-black text-slate-900">
               <ImageIcon className="h-5 w-5 text-[#0D9488]" />
               Hình ảnh đại diện
             </h3>
-            <div className="aspect-[4/3] rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center p-4 text-center overflow-hidden">
-              {form.image_url ? (
-                <img src={form.image_url} className="w-full h-full object-cover rounded-xl" />
-              ) : (
-                <p className="text-xs text-slate-400 font-medium">Chưa có ảnh đại diện</p>
-              )}
-            </div>
-            <input 
-              type="text" 
-              placeholder="Dán URL ảnh vào đây..."
-              className="w-full mt-4 bg-[#fbfaf7] border border-[#ece6dd] rounded-xl px-4 py-2 text-xs outline-none"
-              value={form.image_url}
-              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-            />
+            <AdminImageUpload value={form.image_url || ""} onChange={(url) => setForm({ ...form, image_url: url })} />
           </div>
 
-          <div className="bg-white rounded-[2rem] border border-[#ece6dd] p-6 shadow-sm">
-            <h3 className="font-black text-slate-900 mb-4 flex items-center gap-2">
+          <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
+            <h3 className="mb-4 flex items-center gap-2 font-black text-slate-900">
               <ImageIcon className="h-5 w-5 text-[#0D9488]" />
               Xem trước Meta
             </h3>
             <div className="space-y-3">
-              <p className="text-xs font-bold text-blue-600 line-clamp-1">{form.title || "Tiêu đề Google"}</p>
-              <p className="text-[11px] text-green-700 font-medium">imperialhue.vn/explore/{form.slug || "bai-viet"}</p>
-              <p className="text-[11px] text-slate-500 line-clamp-2">{form.excerpt || "Đoạn mô tả ngắn hiển thị trên kết quả tìm kiếm Google..."}</p>
+              <p className="line-clamp-1 text-xs font-bold text-blue-600">{form.title || "Tiêu đề Google"}</p>
+              <p className="text-[11px] font-medium text-green-700">imperialhue.vn/explore/{form.slug || "bai-viet"}</p>
+              <p className="line-clamp-2 text-[11px] text-slate-500">{form.excerpt || "Đoạn mô tả ngắn hiển thị trên kết quả tìm kiếm Google..."}</p>
             </div>
           </div>
         </aside>
-
-        {/* Mobile floating sidebar toggle */}
-        <div className="lg:hidden fixed bottom-6 right-6 z-40">
-          <button 
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="h-12 w-12 rounded-full bg-[#0D9488] text-white shadow-xl flex items-center justify-center"
-          >
-            {showSidebar ? <X className="h-5 w-5" /> : <ImageIcon className="h-5 w-5" />}
-          </button>
-        </div>
-
-        {/* Mobile sidebar overlay */}
-        {showSidebar && (
-          <>
-            <div className="fixed inset-0 z-30 bg-black/40 lg:hidden" onClick={() => setShowSidebar(false)} />
-            <div className="fixed bottom-20 right-4 z-40 w-72 space-y-4 lg:hidden">
-              <div className="bg-white rounded-2xl border border-[#ece6dd] p-5 shadow-2xl">
-                <h3 className="font-black text-slate-900 mb-3 flex items-center gap-2 text-sm">
-                  <ImageIcon className="h-4 w-4 text-[#0D9488]" />
-                  Hình ảnh đại diện
-                </h3>
-                <div className="aspect-[4/3] rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden">
-                  {form.image_url ? (
-                    <img src={form.image_url} className="w-full h-full object-cover rounded-lg" />
-                  ) : (
-                    <p className="text-xs text-slate-400">Chưa có ảnh</p>
-                  )}
-                </div>
-                <input 
-                  type="text" 
-                  placeholder="URL ảnh..."
-                  className="w-full mt-3 bg-[#fbfaf7] border border-[#ece6dd] rounded-xl px-3 py-2 text-xs outline-none"
-                  value={form.image_url}
-                  onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-                />
-              </div>
-              <div className="bg-white rounded-2xl border border-[#ece6dd] p-5 shadow-2xl">
-                <h3 className="font-black text-slate-900 mb-3 flex items-center gap-2 text-sm">
-                  <ImageIcon className="h-4 w-4 text-[#0D9488]" />
-                  Xem trước Meta
-                </h3>
-                <div className="space-y-2">
-                  <p className="text-xs font-bold text-blue-600 line-clamp-1">{form.title || "Tiêu đề Google"}</p>
-                  <p className="text-[11px] text-green-700 font-medium">imperialhue.vn/explore/{form.slug || "bai-viet"}</p>
-                  <p className="text-[11px] text-slate-500 line-clamp-2">{form.excerpt || "Đoạn mô tả ngắn..."}</p>
-                </div>
-              </div>
-            </div>
-          </>
-        )}
       </main>
     </div>
   );
