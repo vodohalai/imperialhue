@@ -1,0 +1,179 @@
+// @ts-nocheck
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
+  }
+
+  try {
+    const { action } = await req.json()
+    if (!action || !['write', 'generate-image'].includes(action)) {
+      throw new Error('Invalid action. Supported: write, generate-image')
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    if (action === 'write') {
+      // Pick a pending SEO topic (oldest first)
+      const { data: topic, error: topicError } = await supabaseAdmin
+        .from('seo_topics')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (topicError) throw topicError
+      if (!topic) {
+        return new Response(JSON.stringify({ success: false, message: 'Không còn chủ đề nào đang chờ.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // Generate article using OpenAI
+      const openaiKey = Deno.env.get('OPENAI_API_KEY')
+      if (!openaiKey) {
+        throw new Error('Missing OPENAI_API_KEY')
+      }
+
+      const prompt = `Viết một bài blog du lịch Huế với chủ đề: "${topic.topic}". Từ khóa chính: "${topic.keyword}".`
+      const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'Bạn là chuyên gia Content SEO du lịch Huế. Viết bài blog HTML đầy đủ title, excerpt, content (HTML) và category.',
+            },
+            { role: 'user', content: prompt },
+          ],
+          response_format: { type: 'json_object' },
+        }),
+      })
+
+      if (!aiResponse.ok) {
+        const errData = await aiResponse.json()
+        throw new Error(`OpenAI error: ${errData.error?.message || 'Unknown'}`)
+      }
+
+      const aiData = await aiResponse.json()
+      const generated = JSON.parse(aiData.choices[0].message.content)
+
+      // Insert into ai_content_jobs
+      const { data: job, error: insertError } = await supabaseAdmin
+        .from('ai_content_jobs')
+        .insert([{
+          topic_id: topic.id,
+          title: generated.title,
+          status: 'draft_ai',
+          // content will be stored later, but we need content field? table doesn't have content.
+          // We'll create an article record separately? The ai_content_jobs doesn't have content.
+          // Actually, the existing flow stores content in articles table. For now, we just create draft job.
+        }])
+        .select()
+        .single()
+
+      if (insertError) throw insertError
+
+      // Also create an article in articles table to hold content
+      const slug = generated.title
+        ?.toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/--+/g, '-')
+        .trim() || `bai-viet-${Date.now()}`
+
+      const { data: article, error: articleError } = await supabaseAdmin
+        .from('articles')
+        .insert([{
+          slug,
+          title: generated.title,
+          content: generated.content,
+          excerpt: generated.excerpt || '',
+          category: generated.category || 'Du lịch',
+          status: 'draft',
+          image_url: '', // Will be filled by image step
+        }])
+        .select()
+        .single()
+
+      if (articleError) throw articleError
+
+      // Update job with article_id
+      await supabaseAdmin
+        .from('ai_content_jobs')
+        .update({ article_id: article.id })
+        .eq('id', job.id)
+
+      // Mark topic as used
+      await supabaseAdmin
+        .from('seo_topics')
+        .update({ status: 'used', updated_at: new Date().toISOString() })
+        .eq('id', topic.id)
+
+      return new Response(JSON.stringify({ success: true, job, article }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    if (action === 'generate-image') {
+      // Find a job without image that needs cover
+      const { data: job, error: jobError } = await supabaseAdmin
+        .from('ai_content_jobs')
+        .select('*')
+        .eq('status', 'draft_ai')
+        .is('image_url', null)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle()
+
+      if (jobError) throw jobError
+      if (!job) {
+        return new Response(JSON.stringify({ success: false, message: 'Không có bài viết nào cần ảnh.' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      // For now, generate placeholder image based on title
+      const imagePrompt = job.title ? `A beautiful photo of ${job.title} in Hue, Vietnam` : 'Imperial Hue hotel room'
+      // Using a placeholder service that generates images from text (unsplash source)
+      const placeholderUrl = `https://source.unsplash.com/800x600/?${encodeURIComponent(imagePrompt)}`
+
+      // Update job with image_url
+      const { error: updateError } = await supabaseAdmin
+        .from('ai_content_jobs')
+        .update({ image_url: placeholderUrl })
+        .eq('id', job.id)
+
+      if (updateError) throw updateError
+
+      return new Response(JSON.stringify({ success: true, image_url: placeholderUrl }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+  } catch (error) {
+    console.error("[automation-run] Error:", error.message)
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: corsHeaders,
+    })
+  }
+})

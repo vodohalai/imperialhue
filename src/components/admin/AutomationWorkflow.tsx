@@ -72,6 +72,7 @@ const AutomationWorkflow = () => {
   const [loadingControl, setLoadingControl] = useState(true);
   const [savingControl, setSavingControl] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [runningStep, setRunningStep] = useState<string | null>(null);
   const { stats, loading: statsLoading } = useAutomationStats();
 
   const steps: WorkflowStep[] = [
@@ -109,7 +110,7 @@ const AutomationWorkflow = () => {
       id: "image",
       title: "AI Image",
       desc: "Sinh ảnh bìa theo chủ đề và đồng bộ với từng bài viết AI.",
-      meta: `${stats.draftsCreated} covers ready`, // assume 1:1 with drafts
+      meta: `${stats.draftsCreated} covers ready`,
       status: stats.draftsCreated > 0 ? "running" : "ready",
       icon: ImageIcon,
       accent: "text-[#7c3aed]",
@@ -208,7 +209,7 @@ const AutomationWorkflow = () => {
         showError("Không thể khởi tạo dữ liệu automation. Lỗi: " + error.message);
       } else {
         showSuccess("Đã khởi tạo dữ liệu automation thành công. Đang tải lại...");
-        setIsInitialized(true); // trigger refetch stats
+        setIsInitialized(true);
       }
     } catch (err: any) {
       showError("Lỗi khi gọi function khởi tạo dữ liệu: " + err.message);
@@ -249,6 +250,35 @@ const AutomationWorkflow = () => {
     setSavingControl(false);
   };
 
+  const runStep = async (stepId: string) => {
+    // Map step id to action
+    const actionMap: Record<string, string> = {
+      writer: 'write',
+      image: 'generate-image',
+    };
+    const action = actionMap[stepId];
+    if (!action) return;
+
+    setRunningStep(stepId);
+    try {
+      const { data, error } = await supabase.functions.invoke('automation-run', {
+        body: { action },
+      });
+      if (error) throw error;
+      if (data?.success) {
+        showSuccess(`Bước ${stepId} đã chạy thành công!`);
+        // Trigger stats refetch by toggling isInitialized (simple re-render)
+        setIsInitialized(prev => !prev);
+      } else {
+        showError(data?.message || 'Không thể chạy bước này.');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Lỗi khi chạy automation');
+    } finally {
+      setRunningStep(null);
+    }
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
       <div className="overflow-hidden rounded-[2.25rem] border border-[#ece6dd] bg-white shadow-sm">
@@ -287,7 +317,7 @@ const AutomationWorkflow = () => {
               {savingControl ? "Đang cập nhật..." : isPaused ? "Tiếp tục" : "Tạm dừng"}
             </button>
 
-            {/* Init Data button - always visible */}
+            {/* Init Data button */}
             <button
               type="button"
               onClick={initData}
@@ -298,7 +328,6 @@ const AutomationWorkflow = () => {
           </div>
         </div>
 
-        {/* Init workflow table button when loading failed */}
         {!control && !loadingControl && (
           <div className="mx-6 mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <p className="font-semibold">Chưa thể kết nối đến bảng workflow.</p>
@@ -335,6 +364,8 @@ const AutomationWorkflow = () => {
                     : baseState;
                 const isSelected = selectedId === step.id;
                 const isLast = index === steps.length - 1;
+                const isRunnable = ['writer', 'image'].includes(step.id);
+                const isRunning = runningStep === step.id;
 
                 return (
                   <div key={step.id} className="relative">
@@ -358,6 +389,24 @@ const AutomationWorkflow = () => {
                             <span className={`h-2 w-2 rounded-full ${state.dot} ${!isPaused && step.status === "running" ? "animate-pulse" : ""}`} />
                             {state.label}
                           </span>
+                          {isRunnable && !isPaused && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                runStep(step.id);
+                              }}
+                              disabled={isRunning}
+                              className="ml-auto flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-100 transition disabled:opacity-50"
+                            >
+                              {isRunning ? (
+                                <span className="inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin mr-1" />
+                              ) : (
+                                <PlayCircle className="h-4 w-4" />
+                              )}
+                              Run
+                            </button>
+                          )}
                         </div>
                         <p className="mt-1 text-sm font-medium text-slate-500">{step.meta}</p>
                         <p className="mt-2 text-sm leading-6 text-slate-600">{step.desc}</p>
