@@ -135,12 +135,12 @@ const statusMap: Record<
 };
 
 const connectors = [
-  { id: "c1", d: "M 130 120 C 210 95, 255 92, 330 100" },
-  { id: "c2", d: "M 390 100 C 470 110, 505 130, 585 132" },
-  { id: "c3", d: "M 650 132 C 735 110, 790 104, 865 116" },
-  { id: "c4", d: "M 860 170 C 820 255, 740 320, 635 358" },
-  { id: "c5", d: "M 585 386 C 505 392, 425 390, 340 377" },
-  { id: "c6", d: "M 405 350 C 485 350, 560 350, 635 350" },
+  { id: "c1", d: "M 125 140 C 170 120, 240 116, 300 120" },
+  { id: "c2", d: "M 370 120 C 430 122, 505 140, 555 150" },
+  { id: "c3", d: "M 635 145 C 700 122, 760 114, 820 122" },
+  { id: "c4", d: "M 875 175 C 872 260, 820 315, 720 380" },
+  { id: "c5", d: "M 240 392 C 300 405, 395 410, 500 404" },
+  { id: "c6", d: "M 590 405 C 640 405, 700 404, 760 402" },
 ];
 
 const AutomationWorkflow = () => {
@@ -184,27 +184,27 @@ const AutomationWorkflow = () => {
               preserveAspectRatio="none"
             >
               {connectors.map((connector) => (
-                <g key={connector.id}>
-                  <motion.path
-                    d={connector.d}
-                    stroke="#ddd2c5"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    initial={{ pathLength: 0.2, opacity: 0.35 }}
-                    animate={{ pathLength: 1, opacity: 1 }}
-                    transition={{ duration: 1.4, ease: "easeInOut" }}
-                  />
-                </g>
+                <motion.path
+                  key={connector.id}
+                  d={connector.d}
+                  stroke="#d8cfc1"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  fill="none"
+                  initial={{ pathLength: 0.15, opacity: 0.35 }}
+                  animate={{ pathLength: 1, opacity: 1 }}
+                  transition={{ duration: 1.2, ease: "easeInOut" }}
+                />
               ))}
             </svg>
 
             <div className="absolute inset-0 hidden lg:block">
               <motion.div
                 animate={{
-                  x: [90, 315, 580, 820, 610, 360, 610],
-                  y: [110, 100, 132, 116, 352, 376, 350],
+                  x: [110, 305, 570, 830, 735, 515, 770],
+                  y: [140, 120, 150, 122, 402, 404, 402],
                 }}
-                transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+                transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute h-3.5 w-3.5 rounded-full bg-[#f97316] shadow-[0_0_18px_rgba(249,115,22,0.55)]"
               />
             </div>
