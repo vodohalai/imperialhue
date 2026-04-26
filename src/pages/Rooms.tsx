@@ -41,17 +41,24 @@ const Rooms = () => {
   return (
     <div className="min-h-screen bg-[#fbfaf7] text-slate-800">
       <SiteHeader />
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <div className="px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 flex flex-col gap-4 rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm lg:flex-row lg:items-end lg:justify-between">
+          <div className="mb-6 flex flex-col gap-4 rounded-[2rem] border border-[#ece6dd] bg-white p-5 shadow-sm sm:mb-8 sm:p-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">{t("rooms.label")}</p>
-              <h1 className="mt-2 text-3xl font-black text-slate-900">{t("rooms.allTitle")}</h1>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f97316] sm:text-sm sm:tracking-[0.25em]">
+                {t("rooms.label")}
+              </p>
+              <h1 className="mt-2 max-w-[14ch] text-[2rem] font-black leading-[1.08] text-slate-900 sm:max-w-none sm:text-3xl">
+                {t("rooms.allTitle")}
+              </h1>
+              <p className="mt-3 max-w-[34ch] text-[13px] leading-6 text-slate-600 sm:mt-2 sm:max-w-2xl sm:text-sm">
                 {t("rooms.allDesc")}
               </p>
             </div>
-            <Link to="/availability" className="rounded-full bg-[#0D9488] px-5 py-3 text-sm font-semibold text-white">
+            <Link
+              to="/availability"
+              className="w-full rounded-full bg-[#0D9488] px-4 py-3 text-center text-sm font-semibold text-white shadow-sm shadow-teal-100 sm:w-auto sm:px-5 sm:py-3"
+            >
               {t("search.checkAvail")}
             </Link>
           </div>
