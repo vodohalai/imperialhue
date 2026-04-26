@@ -40,3 +40,12 @@ export interface AiContentJob {
   created_at: string;
   updated_at: string;
 }
+
+export type WorkflowMode = "running" | "paused";
+
+export interface WorkflowControl {
+  id: string;
+  workflow_key: string;
+  mode: WorkflowMode;
+  updated_at: string;
+}
