@@ -20,17 +20,16 @@ import Amenities from "./pages/Amenities";
 import Availability from "./pages/Availability";
 import Booking from "./pages/Booking";
 
-// Lazy-loaded pages
 const Explore = lazy(() => import("./pages/Explore"));
 const ExploreDetail = lazy(() => import("./pages/ExploreDetail"));
 const DebugArticles = lazy(() => import("./pages/DebugArticles"));
 const AdminLogin = lazy(() => import("./pages/admin/Login"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminEditor = lazy(() => import("./pages/admin/Editor"));
+const AdminAutomation = lazy(() => import("./pages/admin/Automation"));
 
 const queryClient = new QueryClient();
 
-// Protected Route Component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -53,7 +52,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Simple fallback for lazy routes
 const LoadingFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#fbfaf7]">
     <div className="text-center">
@@ -73,10 +71,8 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            {/* Only render popup on desktop to save mobile resources */}
             {!isMobile && <BehavioralIntelligence />}
             <Routes>
-              {/* Public Routes */}
               <Route path="/" element={<Index />} />
               <Route path="/rooms" element={<Rooms />} />
               <Route path="/rooms/:slug" element={<RoomDetail />} />
@@ -90,11 +86,11 @@ const App = () => {
               <Route path="/amenities" element={<Amenities />} />
               <Route path="/debug-articles" element={<Suspense fallback={<LoadingFallback />}><DebugArticles /></Suspense>} />
 
-              {/* Admin Routes */}
               <Route path="/admin/login" element={<Suspense fallback={<LoadingFallback />}><AdminLogin /></Suspense>} />
               <Route path="/admin" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminDashboard /></Suspense></ProtectedRoute>} />
               <Route path="/admin/editor" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminEditor /></Suspense></ProtectedRoute>} />
               <Route path="/admin/editor/:id" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminEditor /></Suspense></ProtectedRoute>} />
+              <Route path="/admin/automation" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminAutomation /></Suspense></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

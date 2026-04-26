@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, FileText, LayoutDashboard, LogOut, Edit, Trash2, Menu, X } from "lucide-react";
+import { Plus, FileText, LayoutDashboard, LogOut, Edit, Trash2, Menu, X, Bot } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import type { Article } from "@/integrations/supabase/types";
 
@@ -49,7 +49,6 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-[#fbfaf7] flex flex-col lg:flex-row">
-      {/* Mobile header */}
       <div className="lg:hidden flex items-center justify-between bg-white border-b border-[#ece6dd] px-4 py-3">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 bg-[#0D9488] rounded-xl flex items-center justify-center text-white font-bold text-sm">I</div>
@@ -60,12 +59,10 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      {/* Sidebar overlay on mobile */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`bg-white border-r border-[#ece6dd] flex flex-col fixed lg:sticky top-0 lg:top-0 left-0 z-50 h-full w-72 transition-transform duration-300 ${
         sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}>
@@ -84,6 +81,10 @@ const AdminDashboard = () => {
               <Plus className="h-5 w-5" />
               Viết bài mới
             </Link>
+            <Link to="/admin/automation" className="flex items-center gap-3 px-4 py-3 rounded-2xl text-slate-500 hover:bg-slate-50 font-semibold transition text-sm">
+              <Bot className="h-5 w-5" />
+              Automation
+            </Link>
           </nav>
         </div>
         
@@ -95,7 +96,6 @@ const AdminDashboard = () => {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 p-4 sm:p-6 lg:p-10">
         <div className="hidden lg:flex items-center justify-between mb-10">
           <div>
@@ -108,7 +108,6 @@ const AdminDashboard = () => {
           </Link>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-3 sm:gap-6 mb-6 lg:mb-10">
           <div className="bg-white p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border border-[#ece6dd] shadow-sm">
             <div className="flex items-center gap-3 sm:gap-4">
@@ -145,15 +144,12 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Mobile action button */}
         <Link to="/admin/editor" className="lg:hidden flex items-center justify-center gap-2 mb-6 bg-[#0D9488] text-white px-5 py-3 rounded-full font-bold shadow-lg shadow-teal-100 text-sm">
           <Plus className="h-5 w-5" />
           Viết bài mới
         </Link>
 
-        {/* Table - responsive card layout on mobile */}
         <div className="bg-white rounded-[1.5rem] sm:rounded-[2.5rem] border border-[#ece6dd] overflow-hidden shadow-sm">
-          {/* Desktop table */}
           <table className="w-full text-left hidden md:table">
             <thead>
               <tr className="bg-slate-50/50 border-b border-[#ece6dd]">
@@ -220,7 +216,6 @@ const AdminDashboard = () => {
             </tbody>
           </table>
 
-          {/* Mobile card list */}
           <div className="md:hidden divide-y divide-[#ece6dd]">
             {loading ? (
               <div className="p-8 text-center text-slate-400 text-sm">Đang tải dữ liệu...</div>
