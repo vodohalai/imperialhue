@@ -53,7 +53,7 @@ const RoomDetail = () => {
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
       <SiteHeader />
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <div className="px-4 py-8 pb-28 sm:px-6 sm:pb-8 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <Link to="/rooms" className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#0D9488]">
             <ArrowLeft className="h-4 w-4" />
