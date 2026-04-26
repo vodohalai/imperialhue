@@ -22,7 +22,7 @@ const Explore = () => {
   const { data: articles = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["published-articles"],
     queryFn: fetchArticles,
-    staleTime: 30 * 1000, // 30 giây để nhanh chóng hiển thị bài mới
+    staleTime: 30 * 1000,
     retry: 2,
     refetchOnWindowFocus: true,
   });
@@ -30,7 +30,7 @@ const Explore = () => {
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
       <SiteHeader />
-      <div className="px-4 py-8 sm:px-6 lg:px-8">
+      <div className="px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-10">
           <div className="rounded-[2.5rem] border border-[#ece6dd] bg-white p-10 text-center shadow-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">{t("explore.label")}</p>
@@ -39,13 +39,13 @@ const Explore = () => {
           </div>
 
           {isError && (
-            <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center text-red-700">
-              <AlertTriangle className="mx-auto h-8 w-8 mb-2" />
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-700">
+              <AlertTriangle className="mx-auto mb-2 h-8 w-8" />
               <p className="font-bold">Không thể tải bài viết</p>
-              <p className="text-sm mt-1">{(error as Error)?.message || "Đã xảy ra lỗi không xác định."}</p>
+              <p className="mt-1 text-sm">{(error as Error)?.message || "Đã xảy ra lỗi không xác định."}</p>
               <button
                 onClick={() => refetch()}
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-red-100 px-5 py-2 text-sm font-semibold text-red-700 hover:bg-red-200 transition"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-red-100 px-5 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-200"
               >
                 <RefreshCcw className="h-4 w-4" />
                 Thử lại
