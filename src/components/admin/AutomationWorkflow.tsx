@@ -149,44 +149,70 @@ const AutomationWorkflow = () => {
     [selectedId],
   );
 
+  // Initialize workflow table if missing, then fetch control
   useEffect(() => {
-    const fetchControl = async () => {
+    let cancelled = false;
+
+    const init = async () => {
       setLoadingControl(true);
 
-      const { data, error } = await supabase
-        .from("workflow_controls")
-        .select("*")
-        .eq("workflow_key", WORKFLOW_KEY)
-        .maybeSingle();
+      try {
+        // Try to fetch control row
+        const { data, error } = await supabase
+          .from("workflow_controls")
+          .select("*")
+          .eq("workflow_key", WORKFLOW_KEY)
+          .maybeSingle();
 
-      if (error) {
-        showError("Chưa có bảng workflow_controls trong Supabase");
-        setLoadingControl(false);
-        return;
+        if (error) {
+          // If error code is 42P01 (undefined_table), table is missing -> create it via edge function
+          if (error && (error as any).code === '42P01') {
+            try {
+              await supabase.functions.invoke('init-workflow-table');
+              if (!cancelled) {
+                // Retry fetch after creating table
+                const { data: freshData, error: freshError } = await supabase
+                  .from("workflow_controls")
+                  .select("*")
+                  .eq("workflow_key", WORKFLOW_KEY)
+                  .maybeSingle();
+                if (!freshError && freshData) {
+                  setControl(freshData as WorkflowControl);
+                }
+              }
+            } catch (initErr: any) {
+              console.error("Failed to create workflow table:", initErr);
+              showError("Không thể tạo bảng workflow tự động. Vui lòng liên hệ admin.");
+            }
+          } else {
+            showError(error.message);
+          }
+          return;
+        }
+
+        if (data) {
+          setControl(data as WorkflowControl);
+        } else {
+          // Create default row if none exists
+          const { data: inserted, error: insertError } = await supabase
+            .from("workflow_controls")
+            .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
+            .select()
+            .single();
+
+          if (insertError) {
+            showError(insertError.message);
+          } else if (inserted) {
+            setControl(inserted as WorkflowControl);
+          }
+        }
+      } finally {
+        if (!cancelled) setLoadingControl(false);
       }
-
-      if (data) {
-        setControl(data as WorkflowControl);
-        setLoadingControl(false);
-        return;
-      }
-
-      const { data: inserted, error: insertError } = await supabase
-        .from("workflow_controls")
-        .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
-        .select()
-        .single();
-
-      if (insertError) {
-        showError(insertError.message);
-      } else {
-        setControl(inserted as WorkflowControl);
-      }
-
-      setLoadingControl(false);
     };
 
-    fetchControl();
+    init();
+    return () => { cancelled = true; };
   }, []);
 
   const workflowMode: WorkflowMode = control?.mode || "running";
