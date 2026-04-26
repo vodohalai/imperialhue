@@ -10,32 +10,48 @@ import type { Article } from "@/integrations/supabase/types";
 const fetchArticles = async (): Promise<Article[]> => {
   const { data, error } = await supabase
     .from("articles")
-    .select("*")
+    .select("id, slug, title, excerpt, image_url, category, published_at")
     .eq("status", "published")
     .order("published_at", { ascending: false });
+
   if (error) throw error;
-  return data || [];
+  return (data || []) as Article[];
 };
 
 const Explore = () => {
   const { t } = useLanguage();
-  const { data: articles = [], isLoading, isError, error, refetch } = useQuery({
+  const {
+    data: articles = [],
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["published-articles"],
     queryFn: fetchArticles,
-    staleTime: 30 * 1000,
-    retry: 2,
-    refetchOnWindowFocus: true,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
+    retry: 1,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
   });
+
+  const showSkeleton = isLoading && articles.length === 0;
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
       <SiteHeader />
       <div className="px-4 py-8 pb-24 sm:px-6 sm:pb-8 lg:px-8">
-        <div className="mx-auto max-w-7xl space-y-10">
-          <div className="rounded-[2.5rem] border border-[#ece6dd] bg-white p-10 text-center shadow-sm">
+        <div className="mx-auto max-w-7xl space-y-8">
+          <div className="rounded-[2.5rem] border border-[#ece6dd] bg-white p-8 text-center shadow-sm sm:p-10">
             <p className="text-sm font-semibold uppercase tracking-[0.25em] text-[#f97316]">{t("explore.label")}</p>
-            <h1 className="mt-4 text-4xl font-black text-slate-900">{t("explore.pageTitle")}</h1>
-            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-600">{t("explore.pageDesc")}</p>
+            <h1 className="mt-4 text-3xl font-black text-slate-900 sm:text-4xl">{t("explore.pageTitle")}</h1>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">{t("explore.pageDesc")}</p>
+            {isFetching && articles.length > 0 && (
+              <p className="mt-3 text-xs font-medium text-slate-400">Đang cập nhật bài viết...</p>
+            )}
           </div>
 
           {isError && (
@@ -53,18 +69,27 @@ const Explore = () => {
             </div>
           )}
 
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {isLoading ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {showSkeleton ? (
               [...Array(6)].map((_, i) => (
-                <div key={i} className="h-[450px] animate-pulse rounded-[2rem] border border-[#ece6dd] bg-white" />
+                <div key={i} className="overflow-hidden rounded-[2rem] border border-[#ece6dd] bg-white shadow-sm">
+                  <div className="h-56 animate-pulse bg-slate-200" />
+                  <div className="space-y-4 p-6">
+                    <div className="h-3 w-24 animate-pulse rounded-full bg-slate-200" />
+                    <div className="h-6 w-4/5 animate-pulse rounded-full bg-slate-200" />
+                    <div className="h-4 w-full animate-pulse rounded-full bg-slate-200" />
+                    <div className="h-4 w-2/3 animate-pulse rounded-full bg-slate-200" />
+                    <div className="h-4 w-28 animate-pulse rounded-full bg-slate-200" />
+                  </div>
+                </div>
               ))
             ) : articles.length > 0 ? (
               articles.map((article) => (
                 <article
                   key={article.id}
-                  className="group flex flex-col overflow-hidden rounded-[2.5rem] border border-[#ece6dd] bg-white shadow-sm transition hover:-translate-y-2 hover:shadow-xl"
+                  className="group flex flex-col overflow-hidden rounded-[2.5rem] border border-[#ece6dd] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                 >
-                  <Link to={`/explore/${article.slug}`} className="relative h-60 overflow-hidden">
+                  <Link to={`/explore/${article.slug}`} className="relative h-56 overflow-hidden">
                     {article.image_url ? (
                       <img
                         src={article.image_url}
@@ -82,10 +107,10 @@ const Explore = () => {
                     </div>
                   </Link>
 
-                  <div className="flex flex-1 flex-col p-8">
-                    <div className="mb-4 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-slate-400">
+                  <div className="flex flex-1 flex-col p-6">
+                    <div className="mb-3 flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-slate-400">
                       <Calendar className="h-3.5 w-3.5" />
-                      {new Date(article.published_at || "").toLocaleDateString("vi-VN")}
+                      {article.published_at ? new Date(article.published_at).toLocaleDateString("vi-VN") : ""}
                     </div>
 
                     <h2 className="text-xl font-black leading-tight text-slate-900 transition group-hover:text-[#0D9488]">
@@ -94,10 +119,10 @@ const Explore = () => {
 
                     <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-slate-500">{article.excerpt}</p>
 
-                    <div className="mt-auto flex items-center justify-between pt-6">
+                    <div className="mt-auto pt-6">
                       <Link
                         to={`/explore/${article.slug}`}
-                        className="flex items-center gap-2 text-sm font-bold text-[#f97316]"
+                        className="inline-flex items-center gap-2 text-sm font-bold text-[#f97316]"
                       >
                         {t("rooms.viewDetail")}
                         <ArrowRight className="h-4 w-4" />
