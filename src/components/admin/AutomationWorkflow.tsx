@@ -14,6 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import type { WorkflowControl, WorkflowMode } from "@/integrations/supabase/types";
+import { useAutomationStats } from "@/hooks/useAutomationStats";
 
 type WorkflowStatus = "ready" | "running" | "waiting" | "done";
 
@@ -27,79 +28,6 @@ type WorkflowStep = {
   accent: string;
   softBg: string;
 };
-
-const steps: WorkflowStep[] = [
-  {
-    id: "research",
-    title: "SEO Research",
-    desc: "Tìm chủ đề SEO mới về du lịch, ẩm thực, địa điểm và trải nghiệm tại Huế.",
-    meta: "12 topics found",
-    status: "running",
-    icon: Search,
-    accent: "text-[#f97316]",
-    softBg: "bg-[#fff7ed]",
-  },
-  {
-    id: "queue",
-    title: "Topic Queue",
-    desc: "Xếp hạng, gom nhóm và giữ các chủ đề tốt nhất trước khi tạo bài viết.",
-    meta: "8 topics ready",
-    status: "ready",
-    icon: PlayCircle,
-    accent: "text-[#0D9488]",
-    softBg: "bg-[#f0fdfa]",
-  },
-  {
-    id: "writer",
-    title: "AI Writer",
-    desc: "Viết tiêu đề, excerpt, nội dung HTML và slug chuẩn SEO cho blog.",
-    meta: "3 drafts created",
-    status: "running",
-    icon: FileText,
-    accent: "text-[#2563eb]",
-    softBg: "bg-[#eff6ff]",
-  },
-  {
-    id: "image",
-    title: "AI Image",
-    desc: "Sinh ảnh bìa theo chủ đề và đồng bộ với từng bài viết AI.",
-    meta: "3 covers ready",
-    status: "ready",
-    icon: ImageIcon,
-    accent: "text-[#7c3aed]",
-    softBg: "bg-[#f5f3ff]",
-  },
-  {
-    id: "review",
-    title: "Review",
-    desc: "Admin xem nhanh nội dung, kiểm tra tính phù hợp và quyết định duyệt.",
-    meta: "2 waiting approval",
-    status: "waiting",
-    icon: CheckCircle2,
-    accent: "text-[#d97706]",
-    softBg: "bg-[#fffbeb]",
-  },
-  {
-    id: "schedule",
-    title: "Schedule 06:00",
-    desc: "Đưa bài đã duyệt vào hàng chờ đăng tự động lúc 06:00 sáng.",
-    meta: "1 scheduled",
-    status: "ready",
-    icon: CalendarClock,
-    accent: "text-[#65a30d]",
-    softBg: "bg-[#f7fee7]",
-  },
-  {
-    id: "publish",
-    title: "Publish Blog",
-    desc: "Xuất bản bài viết lên website và kích hoạt vòng đời SEO tự nhiên.",
-    meta: "Auto publish active",
-    status: "done",
-    icon: Send,
-    accent: "text-[#16a34a]",
-    softBg: "bg-[#f0fdf4]",
-  },
-];
 
 const statusMap: Record<
   WorkflowStatus,
@@ -143,10 +71,84 @@ const AutomationWorkflow = () => {
   const [control, setControl] = useState<WorkflowControl | null>(null);
   const [loadingControl, setLoadingControl] = useState(true);
   const [savingControl, setSavingControl] = useState(false);
+  const { stats, loading: statsLoading } = useAutomationStats();
+
+  const steps: WorkflowStep[] = [
+    {
+      id: "research",
+      title: "SEO Research",
+      desc: "Tìm chủ đề SEO mới về du lịch, ẩm thực, địa điểm và trải nghiệm tại Huế.",
+      meta: `${stats.totalTopics} topics found (${stats.pendingTopics} pending)`,
+      status: stats.pendingTopics > 0 ? "running" : "ready",
+      icon: Search,
+      accent: "text-[#f97316]",
+      softBg: "bg-[#fff7ed]",
+    },
+    {
+      id: "queue",
+      title: "Topic Queue",
+      desc: "Xếp hạng, gom nhóm và giữ các chủ đề tốt nhất trước khi tạo bài viết.",
+      meta: `${stats.usedTopics} topics ready`,
+      status: stats.usedTopics > 0 ? "ready" : "waiting",
+      icon: PlayCircle,
+      accent: "text-[#0D9488]",
+      softBg: "bg-[#f0fdfa]",
+    },
+    {
+      id: "writer",
+      title: "AI Writer",
+      desc: "Viết tiêu đề, excerpt, nội dung HTML và slug chuẩn SEO cho blog.",
+      meta: `${stats.draftsCreated} drafts created`,
+      status: stats.draftsCreated > 0 ? "running" : "ready",
+      icon: FileText,
+      accent: "text-[#2563eb]",
+      softBg: "bg-[#eff6ff]",
+    },
+    {
+      id: "image",
+      title: "AI Image",
+      desc: "Sinh ảnh bìa theo chủ đề và đồng bộ với từng bài viết AI.",
+      meta: `${stats.draftsCreated} covers ready`, // assume 1:1 with drafts
+      status: stats.draftsCreated > 0 ? "running" : "ready",
+      icon: ImageIcon,
+      accent: "text-[#7c3aed]",
+      softBg: "bg-[#f5f3ff]",
+    },
+    {
+      id: "review",
+      title: "Review",
+      desc: "Admin xem nhanh nội dung, kiểm tra tính phù hợp và quyết định duyệt.",
+      meta: `${stats.waitingReview} waiting approval`,
+      status: stats.waitingReview > 0 ? "waiting" : "ready",
+      icon: CheckCircle2,
+      accent: "text-[#d97706]",
+      softBg: "bg-[#fffbeb]",
+    },
+    {
+      id: "schedule",
+      title: "Schedule 06:00",
+      desc: "Đưa bài đã duyệt vào hàng chờ đăng tự động lúc 06:00 sáng.",
+      meta: `${stats.scheduledJobs} scheduled`,
+      status: stats.scheduledJobs > 0 ? "running" : "ready",
+      icon: CalendarClock,
+      accent: "text-[#65a30d]",
+      softBg: "bg-[#f7fee7]",
+    },
+    {
+      id: "publish",
+      title: "Publish Blog",
+      desc: "Xuất bản bài viết lên website và kích hoạt vòng đời SEO tự nhiên.",
+      meta: `${stats.publishedJobs} published (${stats.failedJobs} failed)`,
+      status: stats.publishedJobs > 0 ? "done" : "ready",
+      icon: Send,
+      accent: "text-[#16a34a]",
+      softBg: "bg-[#f0fdf4]",
+    },
+  ];
 
   const selectedStep = useMemo(
     () => steps.find((step) => step.id === selectedId) || steps[0],
-    [selectedId],
+    [selectedId, steps],
   );
 
   const fetchControl = async () => {
@@ -166,7 +168,6 @@ const AutomationWorkflow = () => {
     if (data) {
       setControl(data as WorkflowControl);
     } else {
-      // insert default row
       const { data: inserted, error: insertError } = await supabase
         .from("workflow_controls")
         .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
@@ -200,9 +201,7 @@ const AutomationWorkflow = () => {
   };
 
   useEffect(() => {
-    fetchControl().catch(() => {
-      // if fetching fails, prompt init
-    });
+    fetchControl().catch(() => {});
   }, []);
 
   const workflowMode: WorkflowMode = control?.mode || "running";
@@ -409,11 +408,13 @@ const AutomationWorkflow = () => {
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-[1.5rem] bg-[#f7fbfa] p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Queue</p>
-            <p className="mt-2 text-2xl font-black text-slate-900">08</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">{stats.totalJobs}</p>
           </div>
           <div className="rounded-[1.5rem] bg-[#fff8f2] p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Success</p>
-            <p className="mt-2 text-2xl font-black text-slate-900">93%</p>
+            <p className="mt-2 text-2xl font-black text-slate-900">
+              {stats.totalJobs > 0 ? Math.round(((stats.publishedJobs + stats.scheduledJobs) / (stats.totalJobs || 1)) * 100) : 0}%
+            </p>
           </div>
         </div>
       </aside>
