@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { BehavioralIntelligence } from "@/components/BehavioralIntelligence";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense, lazy } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -14,18 +15,18 @@ import Rooms from "./pages/Rooms";
 import RoomDetail from "./pages/RoomDetail";
 import Offers from "./pages/Offers";
 import Contact from "./pages/Contact";
-import Explore from "./pages/Explore";
-import ExploreDetail from "./pages/ExploreDetail";
 import About from "./pages/About";
 import Amenities from "./pages/Amenities";
 import Availability from "./pages/Availability";
 import Booking from "./pages/Booking";
-import DebugArticles from "./pages/DebugArticles";
 
-// Admin Pages
-import AdminLogin from "./pages/admin/Login";
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminEditor from "./pages/admin/Editor";
+// Lazy-loaded pages
+const Explore = lazy(() => import("./pages/Explore"));
+const ExploreDetail = lazy(() => import("./pages/ExploreDetail"));
+const DebugArticles = lazy(() => import("./pages/DebugArticles"));
+const AdminLogin = lazy(() => import("./pages/admin/Login"));
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminEditor = lazy(() => import("./pages/admin/Editor"));
 
 const queryClient = new QueryClient();
 
@@ -52,41 +53,56 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <LanguageProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <BehavioralIntelligence />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Index />} />
-            <Route path="/rooms" element={<Rooms />} />
-            <Route path="/rooms/:slug" element={<RoomDetail />} />
-            <Route path="/availability" element={<Availability />} />
-            <Route path="/booking/:slug" element={<Booking />} />
-            <Route path="/offers" element={<Offers />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/explore" element={<Explore />} />
-            <Route path="/explore/:slug" element={<ExploreDetail />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/amenities" element={<Amenities />} />
-            <Route path="/debug-articles" element={<DebugArticles />} />
-
-            {/* Admin Routes */}
-            <Route path="/admin/login" element={<AdminLogin />} />
-            <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/admin/editor" element={<ProtectedRoute><AdminEditor /></ProtectedRoute>} />
-            <Route path="/admin/editor/:id" element={<ProtectedRoute><AdminEditor /></ProtectedRoute>} />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </LanguageProvider>
-  </QueryClientProvider>
+// Simple fallback for lazy routes
+const LoadingFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#fbfaf7]">
+    <div className="text-center">
+      <div className="mx-auto h-10 w-10 animate-spin rounded-full border-b-2 border-[#0D9488]" />
+      <p className="mt-4 text-sm text-slate-500">Đang tải...</p>
+    </div>
+  </div>
 );
+
+const App = () => {
+  const isMobile = useIsMobile();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            {/* Only render popup on desktop to save mobile resources */}
+            {!isMobile && <BehavioralIntelligence />}
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Index />} />
+              <Route path="/rooms" element={<Rooms />} />
+              <Route path="/rooms/:slug" element={<RoomDetail />} />
+              <Route path="/availability" element={<Availability />} />
+              <Route path="/booking/:slug" element={<Booking />} />
+              <Route path="/offers" element={<Offers />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/explore" element={<Suspense fallback={<LoadingFallback />}><Explore /></Suspense>} />
+              <Route path="/explore/:slug" element={<Suspense fallback={<LoadingFallback />}><ExploreDetail /></Suspense>} />
+              <Route path="/about" element={<About />} />
+              <Route path="/amenities" element={<Amenities />} />
+              <Route path="/debug-articles" element={<Suspense fallback={<LoadingFallback />}><DebugArticles /></Suspense>} />
+
+              {/* Admin Routes */}
+              <Route path="/admin/login" element={<Suspense fallback={<LoadingFallback />}><AdminLogin /></Suspense>} />
+              <Route path="/admin" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminDashboard /></Suspense></ProtectedRoute>} />
+              <Route path="/admin/editor" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminEditor /></Suspense></ProtectedRoute>} />
+              <Route path="/admin/editor/:id" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminEditor /></Suspense></ProtectedRoute>} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </LanguageProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

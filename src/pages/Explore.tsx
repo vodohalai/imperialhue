@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowRight, Calendar } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
@@ -7,25 +7,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/LanguageContext";
 import type { Article } from "@/integrations/supabase/types";
 
+const fetchArticles = async (): Promise<Article[]> => {
+  const { data } = await supabase
+    .from("articles")
+    .select("*")
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+  return data || [];
+};
+
 const Explore = () => {
   const { t } = useLanguage();
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchArticles();
-  }, []);
-
-  const fetchArticles = async () => {
-    const { data } = await supabase
-      .from("articles")
-      .select("*")
-      .eq("status", "published")
-      .order("published_at", { ascending: false });
-
-    setArticles(data || []);
-    setLoading(false);
-  };
+  const { data: articles = [], isLoading } = useQuery({
+    queryKey: ["published-articles"],
+    queryFn: fetchArticles,
+    staleTime: 5 * 60 * 1000, // 5 phút giữ cache
+  });
 
   return (
     <div className="min-h-screen bg-[#fbfaf7]">
@@ -39,7 +36,7 @@ const Explore = () => {
           </div>
 
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {loading ? (
+            {isLoading ? (
               [...Array(6)].map((_, i) => (
                 <div key={i} className="h-[450px] animate-pulse rounded-[2rem] border border-[#ece6dd] bg-white" />
               ))
@@ -55,6 +52,7 @@ const Explore = () => {
                         src={article.image_url}
                         alt={article.title}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                        loading="lazy"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-slate-100 text-4xl text-slate-300">🏯</div>

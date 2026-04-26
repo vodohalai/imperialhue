@@ -92,7 +92,7 @@ const ExploreDetail = () => {
           <article className="overflow-hidden rounded-[3rem] border border-[#ece6dd] bg-white shadow-sm">
             <div className="relative h-[450px]">
               {article.image_url ? (
-                <img src={article.image_url} alt={article.title} className="h-full w-full object-cover" />
+                <img src={article.image_url} alt={article.title} className="h-full w-full object-cover" loading="lazy" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center bg-slate-100 text-7xl">🏯</div>
               )}

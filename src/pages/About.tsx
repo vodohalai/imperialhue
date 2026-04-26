@@ -31,6 +31,7 @@ const About = () => {
                 src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"
                 alt="The Imperial Hue"
                 className="h-full min-h-[280px] w-full object-cover"
+                loading="lazy"
               />
             </div>
             <div className="flex flex-col justify-center rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">

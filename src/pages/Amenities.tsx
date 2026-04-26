@@ -52,6 +52,7 @@ const Amenities = () => {
               src="https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1600&q=80"
               alt="Hotel amenities"
               className="h-64 w-full object-cover sm:h-80"
+              loading="lazy"
             />
           </div>
         </div>

@@ -63,7 +63,7 @@ const RoomDetail = () => {
           <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
             <div className="space-y-4">
               <div className="overflow-hidden rounded-[2rem]">
-                <img src={room.images[activeImage]} alt={t(room.nameKey)} className="h-[420px] w-full object-cover" />
+                <img src={room.images[activeImage]} alt={t(room.nameKey)} className="h-[420px] w-full object-cover" loading="eager" />
               </div>
               <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
                 {room.images.map((image, index) => (
@@ -74,7 +74,7 @@ const RoomDetail = () => {
                       index === activeImage ? "border-[#f97316]" : "border-transparent"
                     }`}
                   >
-                    <img src={image} alt={`${t(room.nameKey)} ${index + 1}`} className="h-20 w-full object-cover" />
+                    <img src={image} alt={`${t(room.nameKey)} ${index + 1}`} className="h-20 w-full object-cover" loading="lazy" />
                   </button>
                 ))}
               </div>

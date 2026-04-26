@@ -49,7 +49,7 @@ const Index = () => {
         {/* Hero */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0">
-            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80" alt="The Imperial Hue room" className="h-full w-full object-cover" />
+            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1600&q=80" alt="The Imperial Hue room" className="h-full w-full object-cover" loading="eager" />
             <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-white/10 to-[#fbfaf7]" />
           </div>
 
@@ -106,7 +106,7 @@ const Index = () => {
             {rooms.map((room) => (
               <article key={room.slug} className="group overflow-hidden rounded-[1.75rem] border border-[#ece6dd] bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
                 <div className="relative h-64 overflow-hidden">
-                  <img src={room.images[0]} alt={t(room.nameKey)} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+                  <img src={room.images[0]} alt={t(room.nameKey)} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" />
                   <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#0D9488] shadow">
                     {t("rooms.viewDetail")}
                   </div>

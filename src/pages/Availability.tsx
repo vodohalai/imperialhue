@@ -59,7 +59,7 @@ const Availability = () => {
               return (
                 <article key={room.slug} className="overflow-hidden rounded-[1.75rem] border border-[#ece6dd] bg-white shadow-sm">
                   <div className="relative h-56">
-                    <img src={room.images[0]} alt={t(room.nameKey)} className="h-full w-full object-cover" />
+                    <img src={room.images[0]} alt={t(room.nameKey)} className="h-full w-full object-cover" loading="lazy" />
                     <div className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[#0D9488] shadow">
                       {t("avail.available")}
                     </div>

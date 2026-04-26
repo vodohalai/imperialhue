@@ -129,7 +129,7 @@ const Booking = () => {
               </form>
 
               <aside className="rounded-[2rem] border border-[#ece6dd] bg-white p-6 shadow-sm">
-                <img src={room.images[0]} alt={t(room.nameKey)} className="h-44 w-full rounded-2xl object-cover" />
+                <img src={room.images[0]} alt={t(room.nameKey)} className="h-44 w-full rounded-2xl object-cover" loading="lazy" />
                 <h2 className="mt-4 text-xl font-bold text-slate-900">{t(room.nameKey)}</h2>
                 <p className="text-sm text-slate-500">{room.size} · {t(room.bedKey)}</p>
 
