@@ -13,7 +13,7 @@ export interface AutomationStats {
   failedJobs: number;
 }
 
-export function useAutomationStats() {
+export function useAutomationStats(refreshTrigger: number = 0) {
   const [stats, setStats] = useState<AutomationStats>({
     totalTopics: 0,
     usedTopics: 0,
@@ -28,9 +28,11 @@ export function useAutomationStats() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchStats = async () => {
+      setLoading(true);
       try {
-        // Fetch SEO topics counts
         const { data: topics } = await supabase
           .from("seo_topics")
           .select("status");
@@ -39,7 +41,6 @@ export function useAutomationStats() {
         const pendingTopics = topics?.filter((t) => t.status === "pending").length || 0;
         const usedTopics = topics?.filter((t) => t.status === "used").length || 0;
 
-        // Fetch AI content jobs counts
         const { data: jobs } = await supabase
           .from("ai_content_jobs")
           .select("status");
@@ -47,30 +48,39 @@ export function useAutomationStats() {
         const totalJobs = jobs?.length || 0;
         const draftsCreated = jobs?.filter((j) => j.status === "draft_ai").length || 0;
         const scheduledJobs = jobs?.filter((j) => j.status === "scheduled").length || 0;
-        const waitingReview = draftsCreated; // all drafts are waiting review
+        const waitingReview = draftsCreated;
         const publishedJobs = jobs?.filter((j) => j.status === "published").length || 0;
         const failedJobs = jobs?.filter((j) => j.status === "failed").length || 0;
 
-        setStats({
-          totalTopics,
-          usedTopics,
-          pendingTopics,
-          totalJobs,
-          draftsCreated,
-          scheduledJobs,
-          waitingReview,
-          publishedJobs,
-          failedJobs,
-        });
+        if (!cancelled) {
+          setStats({
+            totalTopics,
+            usedTopics,
+            pendingTopics,
+            totalJobs,
+            draftsCreated,
+            scheduledJobs,
+            waitingReview,
+            publishedJobs,
+            failedJobs,
+          });
+        }
       } catch (error) {
         console.error("Error fetching automation stats:", error);
+        if (!cancelled) {
+          setStats(prev => prev); // giữ nguyên
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchStats();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [refreshTrigger]); // re-fetch khi refreshTrigger thay đổi
 
   return { stats, loading };
 }

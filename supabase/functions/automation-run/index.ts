@@ -14,14 +14,81 @@ serve(async (req) => {
 
   try {
     const { action } = await req.json()
-    if (!action || !['write', 'generate-image'].includes(action)) {
-      throw new Error('Invalid action. Supported: write, generate-image')
+    if (!action || !['write', 'generate-image', 'research'].includes(action)) {
+      throw new Error('Invalid action. Supported: write, generate-image, research')
     }
 
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+
+    if (action === 'research') {
+      const openaiKey = Deno.env.get('OPENAI_API_KEY')
+      if (!openaiKey) {
+        throw new Error('Missing OPENAI_API_KEY')
+      }
+
+      console.log("[automation-run] Researching new SEO topics...")
+
+      const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-5.4-mini',
+          messages: [
+            {
+              role: 'system',
+              content: `Bạn là chuyên gia SEO du lịch Huế. Hãy tạo 2 chủ đề blog mới về du lịch Huế, mỗi chủ đề là một object JSON với các trường: topic (tên chủ đề), keyword (từ khóa chính), search_intent (mục đích tìm kiếm, ví dụ: travel_planning, food_search, information, booking), category (Ẩm thực/Di tích/Lịch trình/Văn hóa/Kinh nghiệm), priority_score (1-100). Trả về object JSON có key "topics" chứa array 2 object.`
+            }
+          ],
+          response_format: { type: 'json_object' },
+        }),
+      })
+
+      if (!aiResponse.ok) {
+        const errData = await aiResponse.json()
+        throw new Error(`OpenAI error: ${errData.error?.message || 'Unknown'}`)
+      }
+
+      const aiData = await aiResponse.json()
+      const parsed = JSON.parse(aiData.choices[0].message.content)
+      const topics = parsed.topics || []
+
+      if (!topics.length) {
+        throw new Error('AI không trả về chủ đề nào')
+      }
+
+      const insertedTopics = []
+      for (const topic of topics) {
+        const { data, error } = await supabaseAdmin
+          .from('seo_topics')
+          .insert([{
+            topic: topic.topic,
+            keyword: topic.keyword,
+            search_intent: topic.search_intent || 'information',
+            category: topic.category || 'Du lịch',
+            priority_score: topic.priority_score || 50,
+            status: 'pending',
+          }])
+          .select()
+          .single()
+
+        if (error) {
+          console.error("[automation-run] Error inserting topic:", error.message)
+          continue
+        }
+        insertedTopics.push(data)
+      }
+
+      console.log("[automation-run] Research completed, inserted topics:", insertedTopics.length)
+      return new Response(JSON.stringify({ success: true, topics: insertedTopics }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
     if (action === 'write') {
       // Pick a pending SEO topic (oldest first)

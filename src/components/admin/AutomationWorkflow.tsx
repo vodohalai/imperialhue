@@ -78,7 +78,8 @@ const AutomationWorkflow = () => {
   const [runningStep, setRunningStep] = useState<string | null>(null);
   const [autoMode, setAutoMode] = useState<boolean>(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
-  const { stats, loading: statsLoading } = useAutomationStats();
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const { stats, loading: statsLoading } = useAutomationStats(refreshTrigger);
 
   const steps: WorkflowStep[] = [
     {
@@ -162,7 +163,7 @@ const AutomationWorkflow = () => {
 
   const selectedStep = useMemo(
     () => steps.find((step) => step.id === selectedId) || steps[0],
-    [selectedId, steps],
+    [selectedId, steps, stats],
   );
 
   const fetchControl = async () => {
@@ -221,6 +222,7 @@ const AutomationWorkflow = () => {
         showError("Không thể khởi tạo dữ liệu automation. Lỗi: " + error.message);
       } else {
         showSuccess("Đã khởi tạo dữ liệu automation thành công. Đang tải lại...");
+        setRefreshTrigger(prev => prev + 1);
         setIsInitialized(true);
       }
     } catch (err: any) {
@@ -236,7 +238,8 @@ const AutomationWorkflow = () => {
       } else {
         showSuccess("Workflow scheduler đã chạy thành công!");
         setLastRun(new Date().toLocaleString("vi-VN"));
-        setIsInitialized(prev => !prev); // Trigger stats refresh
+        setRefreshTrigger(prev => prev + 1);
+        setIsInitialized(prev => !prev);
       }
     } catch (err: any) {
       showError("Lỗi khi gọi scheduler: " + err.message);
@@ -247,14 +250,12 @@ const AutomationWorkflow = () => {
     setAutoMode(!autoMode);
     if (!autoMode) {
       showSuccess("Auto-pilot mode activated. Workflow sẽ tự động chạy mỗi giờ.");
-      // Start the interval
       const intervalId = setInterval(() => {
         runScheduler();
-      }, 3600000); // Every hour
+      }, 3600000);
       (window as any).__workflowInterval = intervalId;
     } else {
       showSuccess("Auto-pilot mode deactivated.");
-      // Clear the interval
       if ((window as any).__workflowInterval) {
         clearInterval((window as any).__workflowInterval);
         (window as any).__workflowInterval = null;
@@ -264,8 +265,6 @@ const AutomationWorkflow = () => {
 
   useEffect(() => {
     fetchControl().catch(() => {});
-    
-    // Cleanup interval on unmount
     return () => {
       if ((window as any).__workflowInterval) {
         clearInterval((window as any).__workflowInterval);
@@ -278,16 +277,11 @@ const AutomationWorkflow = () => {
 
   const handleToggleWorkflow = async () => {
     if (!control || savingControl) return;
-
     const nextMode: WorkflowMode = isPaused ? "running" : "paused";
     setSavingControl(true);
-
     const { data, error } = await supabase
       .from("workflow_controls")
-      .update({
-        mode: nextMode,
-        updated_at: new Date().toISOString(),
-      })
+      .update({ mode: nextMode, updated_at: new Date().toISOString() })
       .eq("id", control.id)
       .select()
       .single();
@@ -297,15 +291,14 @@ const AutomationWorkflow = () => {
       setSavingControl(false);
       return;
     }
-
     setControl(data as WorkflowControl);
     showSuccess(nextMode === "paused" ? "Đã tạm dừng workflow" : "Đã tiếp tục workflow");
     setSavingControl(false);
   };
 
   const runStep = async (stepId: string) => {
-    // Map step id to action
     const actionMap: Record<string, string> = {
+      research: 'research',
       writer: 'write',
       image: 'generate-image',
     };
@@ -319,8 +312,11 @@ const AutomationWorkflow = () => {
       });
       if (error) throw error;
       if (data?.success) {
-        showSuccess(`Bước ${stepId} đã chạy thành công!`);
-        // Trigger stats refetch by toggling isInitialized (simple re-render)
+        const successMsg = action === 'research'
+          ? `Đã tạo ${data.topics?.length || 0} chủ đề SEO mới`
+          : `Bước ${stepId} đã chạy thành công!`;
+        showSuccess(successMsg);
+        setRefreshTrigger(prev => prev + 1);
         setIsInitialized(prev => !prev);
       } else {
         showError(data?.message || 'Không thể chạy bước này.');
@@ -347,7 +343,6 @@ const AutomationWorkflow = () => {
           </div>
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            {/* Status badge */}
             <div
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${
                 isPaused ? "border-orange-200 bg-orange-50 text-orange-700" : "border-teal-200 bg-teal-50 text-teal-700"
@@ -357,7 +352,6 @@ const AutomationWorkflow = () => {
               {loadingControl ? "Đang tải..." : isPaused ? "Đã tạm dừng" : "Đang hoạt động"}
             </div>
 
-            {/* Auto-pilot toggle */}
             <button
               type="button"
               onClick={toggleAutoMode}
@@ -371,7 +365,6 @@ const AutomationWorkflow = () => {
               {autoMode ? "Auto-pilot: ON" : "Auto-pilot: OFF"}
             </button>
 
-            {/* Scheduler run button */}
             <button
               type="button"
               onClick={runScheduler}
@@ -381,7 +374,6 @@ const AutomationWorkflow = () => {
               Run Scheduler
             </button>
 
-            {/* Pause/Resume button */}
             <button
               type="button"
               onClick={handleToggleWorkflow}
@@ -394,7 +386,6 @@ const AutomationWorkflow = () => {
               {savingControl ? "Đang cập nhật..." : isPaused ? "Tiếp tục" : "Tạm dừng"}
             </button>
 
-            {/* Init Data button */}
             <button
               type="button"
               onClick={initData}
@@ -419,7 +410,6 @@ const AutomationWorkflow = () => {
         )}
 
         <div className="border-t border-[#f6f1e8] bg-[#fcfaf6] p-4 sm:p-6">
-          {/* Auto-pilot status */}
           {autoMode && (
             <div className="mb-4 rounded-[1.5rem] border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 text-sm">
               <div className="flex items-center gap-2">
@@ -457,7 +447,7 @@ const AutomationWorkflow = () => {
                     : baseState;
                 const isSelected = selectedId === step.id;
                 const isLast = index === steps.length - 1;
-                const isRunnable = ['writer', 'image'].includes(step.id);
+                const isRunnable = ['research', 'writer', 'image'].includes(step.id);
                 const isRunning = runningStep === step.id;
 
                 return (
