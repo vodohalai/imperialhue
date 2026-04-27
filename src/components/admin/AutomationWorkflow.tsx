@@ -42,6 +42,11 @@ type ReviewItem = {
   article: Article | null;
 };
 
+type ImagePreviewItem = {
+  job: AiContentJob;
+  article: Article | null;
+};
+
 const statusMap: Record<
   WorkflowStatus,
   {
@@ -104,6 +109,8 @@ const AutomationWorkflow = () => {
   const [loadingResearchTopics, setLoadingResearchTopics] = useState(false);
   const [reviewItem, setReviewItem] = useState<ReviewItem | null>(null);
   const [loadingReviewItem, setLoadingReviewItem] = useState(false);
+  const [imagePreviewItem, setImagePreviewItem] = useState<ImagePreviewItem | null>(null);
+  const [loadingImagePreview, setLoadingImagePreview] = useState(false);
   const [scheduleTime, setScheduleTime] = useState("06:00");
   const { stats } = useAutomationStats(refreshTrigger);
 
@@ -254,6 +261,7 @@ const AutomationWorkflow = () => {
       .from("ai_content_jobs")
       .select("*")
       .eq("status", "draft_ai")
+      .not("image_url", "is", null)
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle();
@@ -295,6 +303,57 @@ const AutomationWorkflow = () => {
     setLoadingReviewItem(false);
   };
 
+  const fetchImagePreviewItem = async () => {
+    setLoadingImagePreview(true);
+
+    const { data: job, error: jobError } = await supabase
+      .from("ai_content_jobs")
+      .select("*")
+      .eq("status", "draft_ai")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (jobError) {
+      setLoadingImagePreview(false);
+      showError(jobError.message);
+      return null;
+    }
+
+    if (!job) {
+      setImagePreviewItem(null);
+      setLoadingImagePreview(false);
+      return null;
+    }
+
+    let article: Article | null = null;
+
+    if (job.article_id) {
+      const { data: articleData, error: articleError } = await supabase
+        .from("articles")
+        .select("*")
+        .eq("id", job.article_id)
+        .maybeSingle();
+
+      if (articleError) {
+        setLoadingImagePreview(false);
+        showError(articleError.message);
+        return null;
+      }
+
+      article = articleData as Article | null;
+    }
+
+    const item = {
+      job: job as AiContentJob,
+      article,
+    };
+
+    setImagePreviewItem(item);
+    setLoadingImagePreview(false);
+    return item;
+  };
+
   useEffect(() => {
     if (selectedId === "research") {
       fetchResearchTopics().catch(() => undefined);
@@ -302,6 +361,10 @@ const AutomationWorkflow = () => {
 
     if (selectedId === "review") {
       fetchReviewItem().catch(() => undefined);
+    }
+
+    if (selectedId === "image") {
+      fetchImagePreviewItem().catch(() => undefined);
     }
   }, [selectedId, refreshTrigger]);
 
@@ -440,8 +503,17 @@ const AutomationWorkflow = () => {
         } else {
           showSuccess(`Đã tạo ${data.topics?.length || 0} chủ đề SEO mới`);
         }
-      } else {
+      }
+
+      if (action === "generate-image") {
+        setSelectedId("image");
+        await fetchImagePreviewItem();
+      }
+
+      if (action !== "research" && action !== "generate-image") {
         showSuccess(`Bước ${stepId} đã chạy thành công!`);
+      } else if (action === "generate-image") {
+        showSuccess("Ảnh AI đã được tạo xong.");
       }
 
       setRefreshTrigger((prev) => prev + 1);
@@ -496,26 +568,17 @@ const AutomationWorkflow = () => {
       await invokeAutomation("generate-image");
       setRefreshTrigger((prev) => prev + 1);
 
-      await wait(500);
+      await wait(600);
 
-      const { data: imageJobs, error: imageError } = await supabase
-        .from("ai_content_jobs")
-        .select("id,image_url")
-        .eq("status", "draft_ai")
-        .not("image_url", "is", null)
-        .limit(1);
+      const imageItem = await fetchImagePreviewItem();
 
-      if (imageError) {
-        throw new Error(imageError.message);
-      }
-
-      if (!imageJobs || imageJobs.length === 0) {
+      if (!imageItem?.job?.image_url && !imageItem?.article?.image_url) {
         throw new Error("Chưa tạo được ảnh bìa sau bước AI Image.");
       }
 
-      setSelectedId("review");
       await fetchReviewItem();
-      showSuccess("Đã chạy full workflow đến bước chờ duyệt.");
+      setSelectedId("review");
+      showSuccess("Đã tạo ảnh xong và chuyển sang bước chờ duyệt.");
     } catch (err: any) {
       showError(err.message || "Không thể chạy full workflow");
     } finally {
@@ -531,6 +594,7 @@ const AutomationWorkflow = () => {
         .from("ai_content_jobs")
         .select("*")
         .eq("status", "draft_ai")
+        .not("image_url", "is", null)
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle();
@@ -540,7 +604,7 @@ const AutomationWorkflow = () => {
       }
 
       if (!job) {
-        throw new Error("Không có bài nào đang chờ duyệt.");
+        throw new Error("Chưa có bài hoàn chỉnh có ảnh để duyệt.");
       }
 
       const { error: updateJobError } = await supabase
@@ -848,7 +912,9 @@ const AutomationWorkflow = () => {
               ? `${researchTopics.length} topic pending trong hệ thống`
               : selectedStep.id === "review" && reviewItem?.article
                 ? reviewItem.article.title
-                : selectedStep.meta}
+                : selectedStep.id === "image" && imagePreviewItem?.article
+                  ? imagePreviewItem.article.title
+                  : selectedStep.meta}
           </p>
         </div>
 
@@ -882,6 +948,46 @@ const AutomationWorkflow = () => {
           </div>
         )}
 
+        {selectedStep.id === "image" && (
+          <div className="mt-6 space-y-4">
+            {loadingImagePreview ? (
+              <div className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
+                Đang tải preview ảnh...
+              </div>
+            ) : !imagePreviewItem?.job ? (
+              <div className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
+                Chưa có bài nào trong bước tạo ảnh.
+              </div>
+            ) : (
+              <>
+                {imagePreviewItem.job.image_url || imagePreviewItem.article?.image_url ? (
+                  <img
+                    src={imagePreviewItem.job.image_url || imagePreviewItem.article?.image_url || ""}
+                    alt={imagePreviewItem.article?.title || imagePreviewItem.job.title || "AI preview"}
+                    className="h-52 w-full rounded-2xl object-cover"
+                    loading="lazy"
+                  />
+                ) : (
+                  <div className="rounded-2xl border border-dashed border-[#d8d2e8] bg-[#faf7ff] px-4 py-10 text-center text-sm text-slate-500">
+                    Ảnh vẫn chưa được tạo xong. Hãy chạy lại bước AI Image nếu cần.
+                  </div>
+                )}
+
+                <div className="rounded-2xl border border-[#ece6dd] bg-white p-4">
+                  <p className="text-sm font-bold text-slate-900">
+                    {imagePreviewItem.article?.title || imagePreviewItem.job.title || "Bài viết AI"}
+                  </p>
+                  <p className="mt-2 text-sm text-slate-600">
+                    {imagePreviewItem.job.image_url || imagePreviewItem.article?.image_url
+                      ? "Ảnh preview đã sẵn sàng. Khi đã ổn, workflow mới nên chuyển sang bước Review."
+                      : "Chưa có ảnh preview để duyệt."}
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         {selectedStep.id === "review" && (
           <div className="mt-6 space-y-4">
             {loadingReviewItem ? (
@@ -890,7 +996,7 @@ const AutomationWorkflow = () => {
               </div>
             ) : !reviewItem?.article ? (
               <div className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
-                Chưa có bài nào đang chờ duyệt.
+                Chưa có bài nào đủ điều kiện duyệt. Bài phải có ảnh xong mới vào bước này.
               </div>
             ) : (
               <>
