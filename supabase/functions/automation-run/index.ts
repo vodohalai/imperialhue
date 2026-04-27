@@ -21,7 +21,10 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const action = body?.action
 
+    console.log("[automation-run] Incoming request", { action })
+
     if (!action || !["write", "generate-image", "research"].includes(action)) {
+      console.error("[automation-run] Invalid action received", { action })
       return new Response(
         JSON.stringify({ success: false, message: "Invalid action. Supported: write, generate-image, research" }),
         { status: 400, headers: jsonHeaders },
@@ -37,6 +40,7 @@ serve(async (req) => {
 
     if (action === "research") {
       if (!openaiKey) {
+        console.error("[automation-run] Missing OPENAI_API_KEY for research")
         return new Response(
           JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
           { status: 500, headers: jsonHeaders },
@@ -67,6 +71,7 @@ serve(async (req) => {
       const aiData = await aiResponse.json()
 
       if (!aiResponse.ok) {
+        console.error("[automation-run] OpenAI research failed", { error: aiData })
         return new Response(
           JSON.stringify({
             success: false,
@@ -79,7 +84,10 @@ serve(async (req) => {
       const parsed = JSON.parse(aiData.choices?.[0]?.message?.content || "{}")
       const topics = parsed.topics || []
 
+      console.log("[automation-run] Research result parsed", { topicsCount: topics.length })
+
       if (!topics.length) {
+        console.error("[automation-run] No topics returned from AI")
         return new Response(
           JSON.stringify({ success: false, message: "AI không trả về chủ đề nào" }),
           { status: 200, headers: jsonHeaders },
@@ -107,13 +115,18 @@ serve(async (req) => {
           .single()
 
         if (error) {
-          console.error("[automation-run] Error inserting topic:", error.message)
+          console.error("[automation-run] Error inserting topic", { index: i, message: error.message })
           errors.push(`Topic ${i + 1}: ${error.message}`)
           continue
         }
 
         insertedTopics.push(data)
       }
+
+      console.log("[automation-run] Research completed", {
+        insertedTopics: insertedTopics.length,
+        errors: errors.length,
+      })
 
       return new Response(
         JSON.stringify({ success: true, topics: insertedTopics, errors }),
@@ -123,6 +136,7 @@ serve(async (req) => {
 
     if (action === "write") {
       if (!openaiKey) {
+        console.error("[automation-run] Missing OPENAI_API_KEY for write")
         return new Response(
           JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
           { status: 500, headers: jsonHeaders },
@@ -138,6 +152,7 @@ serve(async (req) => {
         .maybeSingle()
 
       if (topicError) {
+        console.error("[automation-run] Failed to fetch pending topic", { message: topicError.message })
         return new Response(
           JSON.stringify({ success: false, message: topicError.message }),
           { status: 500, headers: jsonHeaders },
@@ -145,11 +160,18 @@ serve(async (req) => {
       }
 
       if (!topic) {
+        console.error("[automation-run] No pending topic found for write")
         return new Response(
           JSON.stringify({ success: false, message: "Không còn chủ đề nào đang chờ." }),
           { headers: jsonHeaders },
         )
       }
+
+      console.log("[automation-run] Writing article for topic", {
+        topicId: topic.id,
+        topic: topic.topic,
+        keyword: topic.keyword,
+      })
 
       const prompt = `Viết một bài blog du lịch Huế với chủ đề: "${topic.topic}". Từ khóa chính: "${topic.keyword}".`
 
@@ -176,6 +198,7 @@ serve(async (req) => {
       const aiData = await aiResponse.json()
 
       if (!aiResponse.ok) {
+        console.error("[automation-run] OpenAI write failed", { error: aiData })
         return new Response(
           JSON.stringify({
             success: false,
@@ -188,6 +211,7 @@ serve(async (req) => {
       const generated = JSON.parse(aiData.choices?.[0]?.message?.content || "{}")
 
       if (!generated?.title || !generated?.content) {
+        console.error("[automation-run] AI returned incomplete article payload", { generated })
         return new Response(
           JSON.stringify({ success: false, message: "AI không trả về đủ dữ liệu bài viết." }),
           { headers: jsonHeaders },
@@ -207,6 +231,7 @@ serve(async (req) => {
         .single()
 
       if (insertJobError) {
+        console.error("[automation-run] Failed to insert ai_content_job", { message: insertJobError.message })
         return new Response(
           JSON.stringify({ success: false, message: insertJobError.message }),
           { status: 500, headers: jsonHeaders },
@@ -240,11 +265,18 @@ serve(async (req) => {
         .single()
 
       if (articleError) {
+        console.error("[automation-run] Failed to insert article", { message: articleError.message })
         return new Response(
           JSON.stringify({ success: false, message: articleError.message }),
           { status: 500, headers: jsonHeaders },
         )
       }
+
+      console.log("[automation-run] Article created", {
+        articleId: article.id,
+        slug: article.slug,
+        title: article.title,
+      })
 
       const { error: linkError } = await supabaseAdmin
         .from("ai_content_jobs")
@@ -252,11 +284,17 @@ serve(async (req) => {
         .eq("id", job.id)
 
       if (linkError) {
+        console.error("[automation-run] Failed to link job to article", { message: linkError.message })
         return new Response(
           JSON.stringify({ success: false, message: linkError.message }),
           { status: 500, headers: jsonHeaders },
         )
       }
+
+      console.log("[automation-run] Linked ai_content_job to article", {
+        jobId: job.id,
+        articleId: article.id,
+      })
 
       const { error: topicUpdateError } = await supabaseAdmin
         .from("seo_topics")
@@ -264,6 +302,7 @@ serve(async (req) => {
         .eq("id", topic.id)
 
       if (topicUpdateError) {
+        console.error("[automation-run] Failed to mark topic as used", { message: topicUpdateError.message })
         return new Response(
           JSON.stringify({ success: false, message: topicUpdateError.message }),
           { status: 500, headers: jsonHeaders },
@@ -277,6 +316,8 @@ serve(async (req) => {
     }
 
     if (action === "generate-image") {
+      console.log("[automation-run] Starting generate-image flow")
+
       const { data: job, error: jobError } = await supabaseAdmin
         .from("ai_content_jobs")
         .select("*")
@@ -287,6 +328,7 @@ serve(async (req) => {
         .maybeSingle()
 
       if (jobError) {
+        console.error("[automation-run] Failed to fetch image job", { message: jobError.message })
         return new Response(
           JSON.stringify({ success: false, message: jobError.message }),
           { status: 500, headers: jsonHeaders },
@@ -294,13 +336,21 @@ serve(async (req) => {
       }
 
       if (!job) {
+        console.error("[automation-run] No draft_ai job without image_url found")
         return new Response(
           JSON.stringify({ success: false, message: "Không có bài viết nào cần ảnh." }),
           { headers: jsonHeaders },
         )
       }
 
+      console.log("[automation-run] Found job for image generation", {
+        jobId: job.id,
+        title: job.title,
+        articleId: job.article_id,
+      })
+
       if (!openaiKey) {
+        console.error("[automation-run] Missing OPENAI_API_KEY for generate-image")
         return new Response(
           JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
           { status: 500, headers: jsonHeaders },
@@ -310,6 +360,8 @@ serve(async (req) => {
       const imagePrompt = job.title
         ? `A beautiful, professional cover photo for a travel blog article titled "${job.title}" about Hue, Vietnam. Cinematic, warm lighting, 16:9, no text.`
         : "Imperial Hue boutique hotel, luxury room, cinematic style"
+
+      console.log("[automation-run] Sending image prompt", { imagePrompt })
 
       const imgResponse = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
@@ -327,6 +379,7 @@ serve(async (req) => {
       const imgData = await imgResponse.json()
 
       if (!imgResponse.ok) {
+        console.error("[automation-run] OpenAI image generation failed", { error: imgData })
         return new Response(
           JSON.stringify({
             success: false,
@@ -338,7 +391,13 @@ serve(async (req) => {
 
       const imageUrl = imgData?.data?.[0]?.url
 
+      console.log("[automation-run] Image generation response received", {
+        hasImageUrl: Boolean(imageUrl),
+        imageUrl,
+      })
+
       if (!imageUrl) {
+        console.error("[automation-run] Image generation returned no URL", { imgData })
         return new Response(
           JSON.stringify({ success: false, message: "Image generation returned no URL" }),
           { headers: jsonHeaders },
@@ -354,13 +413,28 @@ serve(async (req) => {
         .eq("id", job.id)
 
       if (updateJobError) {
+        console.error("[automation-run] Failed to update ai_content_jobs.image_url", {
+          jobId: job.id,
+          message: updateJobError.message,
+        })
         return new Response(
           JSON.stringify({ success: false, message: updateJobError.message }),
           { status: 500, headers: jsonHeaders },
         )
       }
 
+      console.log("[automation-run] Updated ai_content_jobs.image_url", {
+        jobId: job.id,
+        articleId: job.article_id,
+        imageUrl,
+      })
+
       if (job.article_id) {
+        console.log("[automation-run] Attempting to update article image_url", {
+          articleId: job.article_id,
+          imageUrl,
+        })
+
         const { error: updateArticleError } = await supabaseAdmin
           .from("articles")
           .update({
@@ -370,11 +444,34 @@ serve(async (req) => {
           .eq("id", job.article_id)
 
         if (updateArticleError) {
+          console.error("[automation-run] Failed to update articles.image_url", {
+            articleId: job.article_id,
+            message: updateArticleError.message,
+          })
           return new Response(
             JSON.stringify({ success: false, message: updateArticleError.message }),
             { status: 500, headers: jsonHeaders },
           )
         }
+
+        const { data: updatedArticle, error: verifyArticleError } = await supabaseAdmin
+          .from("articles")
+          .select("id,image_url,updated_at")
+          .eq("id", job.article_id)
+          .maybeSingle()
+
+        if (verifyArticleError) {
+          console.error("[automation-run] Failed to verify updated article", {
+            articleId: job.article_id,
+            message: verifyArticleError.message,
+          })
+        } else {
+          console.log("[automation-run] Verified article after image update", updatedArticle)
+        }
+      } else {
+        console.error("[automation-run] Job has no article_id, so article image cannot be updated", {
+          jobId: job.id,
+        })
       }
 
       return new Response(
