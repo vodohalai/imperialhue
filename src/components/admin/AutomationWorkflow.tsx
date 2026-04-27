@@ -12,6 +12,7 @@ import {
   Search,
   Send,
   Sparkles,
+  Wand2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -79,6 +80,7 @@ const AutomationWorkflow = () => {
   const [loadingControl, setLoadingControl] = useState(true);
   const [savingControl, setSavingControl] = useState(false);
   const [runningStep, setRunningStep] = useState<string | null>(null);
+  const [runningFullWorkflow, setRunningFullWorkflow] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -269,6 +271,22 @@ const AutomationWorkflow = () => {
     setRefreshTrigger((prev) => prev + 1);
   };
 
+  const invokeAutomation = async (action: "research" | "write" | "generate-image") => {
+    const { data, error } = await supabase.functions.invoke("automation-run", {
+      body: { action },
+    });
+
+    if (error) {
+      throw new Error(error.message || "Lỗi khi chạy automation");
+    }
+
+    if (!data?.success) {
+      throw new Error(data?.message || "Không thể chạy bước này.");
+    }
+
+    return data;
+  };
+
   const toggleAutoMode = () => {
     const workflowWindow = window as WorkflowWindow;
 
@@ -333,7 +351,7 @@ const AutomationWorkflow = () => {
   };
 
   const runStep = async (stepId: string) => {
-    const actionMap: Record<string, string> = {
+    const actionMap: Record<string, "research" | "write" | "generate-image"> = {
       research: "research",
       writer: "write",
       image: "generate-image",
@@ -348,39 +366,57 @@ const AutomationWorkflow = () => {
       setResearchErrors([]);
     }
 
-    const { data, error } = await supabase.functions.invoke("automation-run", {
-      body: { action },
-    });
+    try {
+      const data = await invokeAutomation(action);
 
-    if (error) {
-      setRunningStep(null);
-      showError(error.message || "Lỗi khi chạy automation");
-      return;
-    }
+      if (action === "research") {
+        const errors = (data.errors || []) as string[];
+        setResearchErrors(errors);
+        setSelectedId("research");
+        await fetchResearchTopics();
 
-    if (!data?.success) {
-      setRunningStep(null);
-      showError(data?.message || "Không thể chạy bước này.");
-      return;
-    }
-
-    if (action === "research") {
-      const errors = (data.errors || []) as string[];
-      setResearchErrors(errors);
-      setSelectedId("research");
-      await fetchResearchTopics();
-
-      if (errors.length > 0) {
-        showError(`Đã tạo topic nhưng có ${errors.length} lỗi.`);
+        if (errors.length > 0) {
+          showError(`Đã tạo topic nhưng có ${errors.length} lỗi.`);
+        } else {
+          showSuccess(`Đã tạo ${data.topics?.length || 0} chủ đề SEO mới`);
+        }
       } else {
-        showSuccess(`Đã tạo ${data.topics?.length || 0} chủ đề SEO mới`);
+        showSuccess(`Bước ${stepId} đã chạy thành công!`);
       }
-    } else {
-      showSuccess(`Bước ${stepId} đã chạy thành công!`);
-    }
 
-    setRefreshTrigger((prev) => prev + 1);
-    setRunningStep(null);
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      showError(err.message || "Lỗi khi chạy automation");
+    } finally {
+      setRunningStep(null);
+    }
+  };
+
+  const runFullWorkflow = async () => {
+    setRunningFullWorkflow(true);
+    setResearchErrors([]);
+
+    try {
+      setSelectedId("research");
+      await invokeAutomation("research");
+      await fetchResearchTopics();
+      setRefreshTrigger((prev) => prev + 1);
+
+      setSelectedId("writer");
+      await invokeAutomation("write");
+      setRefreshTrigger((prev) => prev + 1);
+
+      setSelectedId("image");
+      await invokeAutomation("generate-image");
+      setRefreshTrigger((prev) => prev + 1);
+
+      setSelectedId("review");
+      showSuccess("Đã chạy full workflow đến bước chờ duyệt.");
+    } catch (err: any) {
+      showError(err.message || "Không thể chạy full workflow");
+    } finally {
+      setRunningFullWorkflow(false);
+    }
   };
 
   return (
@@ -397,7 +433,7 @@ const AutomationWorkflow = () => {
             </div>
           </div>
 
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
             <div
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${
                 isPaused ? "border-orange-200 bg-orange-50 text-orange-700" : "border-teal-200 bg-teal-50 text-teal-700"
@@ -406,6 +442,20 @@ const AutomationWorkflow = () => {
               <span className={`h-2 w-2 rounded-full ${isPaused ? "bg-orange-500" : "bg-teal-500"}`} />
               {loadingControl ? "Đang tải..." : isPaused ? "Đã tạm dừng" : "Đang hoạt động"}
             </div>
+
+            <button
+              type="button"
+              onClick={runFullWorkflow}
+              disabled={runningFullWorkflow || isPaused}
+              className="inline-flex items-center gap-2 rounded-full bg-[#0D9488] px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-teal-100 transition hover:bg-[#0b7a6f] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {runningFullWorkflow ? (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+              Run Full Workflow
+            </button>
 
             <button
               type="button"
@@ -540,7 +590,7 @@ const AutomationWorkflow = () => {
                                 e.stopPropagation();
                                 runStep(step.id);
                               }}
-                              disabled={isRunning}
+                              disabled={isRunning || runningFullWorkflow}
                               className="ml-auto flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100 disabled:opacity-50"
                             >
                               {isRunning ? (
