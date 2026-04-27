@@ -83,6 +83,7 @@ const statusMap: Record<
 };
 
 const WORKFLOW_KEY = "blog_automation";
+const AUTO_PILOT_STORAGE_KEY = "imperial-auto-pilot-enabled";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -102,7 +103,10 @@ const AutomationWorkflow = () => {
   const [runningFullWorkflow, setRunningFullWorkflow] = useState(false);
   const [approving, setApproving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [autoMode, setAutoMode] = useState(false);
+  const [autoMode, setAutoMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(AUTO_PILOT_STORAGE_KEY) === "true";
+  });
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [researchErrors, setResearchErrors] = useState<string[]>([]);
   const [researchTopics, setResearchTopics] = useState<SeoTopic[]>([]);
@@ -410,37 +414,43 @@ const AutomationWorkflow = () => {
     return data;
   };
 
-  const toggleAutoMode = () => {
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(AUTO_PILOT_STORAGE_KEY, String(autoMode));
+    }
+
     const workflowWindow = window as WorkflowWindow;
 
+    if (workflowWindow.__workflowInterval) {
+      clearInterval(workflowWindow.__workflowInterval);
+      workflowWindow.__workflowInterval = undefined;
+    }
+
+    if (autoMode) {
+      const intervalId = setInterval(() => {
+        setRefreshTrigger((value) => value + 1);
+      }, 3600000);
+      workflowWindow.__workflowInterval = intervalId;
+    }
+
+    return () => {
+      if (workflowWindow.__workflowInterval) {
+        clearInterval(workflowWindow.__workflowInterval);
+        workflowWindow.__workflowInterval = undefined;
+      }
+    };
+  }, [autoMode]);
+
+  const toggleAutoMode = () => {
     setAutoMode((prev) => {
       const next = !prev;
-      if (next) {
-        showSuccess("Auto-pilot mode activated. Workflow sẽ tự động chạy mỗi giờ.");
-        const intervalId = setInterval(() => {
-          setRefreshTrigger((value) => value + 1);
-        }, 3600000);
-        workflowWindow.__workflowInterval = intervalId;
-      } else {
-        showSuccess("Auto-pilot mode deactivated.");
-        if (workflowWindow.__workflowInterval) {
-          clearInterval(workflowWindow.__workflowInterval);
-          workflowWindow.__workflowInterval = undefined;
-        }
-      }
+      showSuccess(next ? "Auto-pilot mode activated." : "Auto-pilot mode deactivated.");
       return next;
     });
   };
 
   useEffect(() => {
     fetchControl().catch(() => undefined);
-
-    return () => {
-      const workflowWindow = window as WorkflowWindow;
-      if (workflowWindow.__workflowInterval) {
-        clearInterval(workflowWindow.__workflowInterval);
-      }
-    };
   }, []);
 
   const workflowMode: WorkflowMode = control?.mode || "running";
@@ -774,10 +784,10 @@ const AutomationWorkflow = () => {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-purple-500" />
                 <span className="font-bold text-purple-700">Auto-pilot mode active</span>
-                <span className="ml-auto text-xs text-purple-500">Auto refresh mỗi giờ</span>
+                <span className="ml-auto text-xs text-purple-500">Giữ nguyên sau khi tải lại</span>
               </div>
               <p className="mt-1 text-xs text-purple-600">
-                Workflow sẽ tự động cập nhật trạng thái, còn lịch đăng được admin chọn trực tiếp ở phần đầu canvas.
+                Chế độ tự động sẽ được ghi nhớ ngay cả khi bạn refresh trang này.
               </p>
             </div>
           )}
