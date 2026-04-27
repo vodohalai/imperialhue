@@ -8,8 +8,10 @@ import {
   Image as ImageIcon,
   PauseCircle,
   PlayCircle,
+  RefreshCw,
   Search,
   Send,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -27,6 +29,7 @@ type WorkflowStep = {
   icon: typeof Search;
   accent: string;
   softBg: string;
+  autoRunnable: boolean;
 };
 
 const statusMap: Record<
@@ -73,6 +76,8 @@ const AutomationWorkflow = () => {
   const [savingControl, setSavingControl] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [runningStep, setRunningStep] = useState<string | null>(null);
+  const [autoMode, setAutoMode] = useState<boolean>(false);
+  const [lastRun, setLastRun] = useState<string | null>(null);
   const { stats, loading: statsLoading } = useAutomationStats();
 
   const steps: WorkflowStep[] = [
@@ -85,6 +90,7 @@ const AutomationWorkflow = () => {
       icon: Search,
       accent: "text-[#f97316]",
       softBg: "bg-[#fff7ed]",
+      autoRunnable: true,
     },
     {
       id: "queue",
@@ -95,6 +101,7 @@ const AutomationWorkflow = () => {
       icon: PlayCircle,
       accent: "text-[#0D9488]",
       softBg: "bg-[#f0fdfa]",
+      autoRunnable: false,
     },
     {
       id: "writer",
@@ -105,6 +112,7 @@ const AutomationWorkflow = () => {
       icon: FileText,
       accent: "text-[#2563eb]",
       softBg: "bg-[#eff6ff]",
+      autoRunnable: true,
     },
     {
       id: "image",
@@ -115,6 +123,7 @@ const AutomationWorkflow = () => {
       icon: ImageIcon,
       accent: "text-[#7c3aed]",
       softBg: "bg-[#f5f3ff]",
+      autoRunnable: true,
     },
     {
       id: "review",
@@ -125,6 +134,7 @@ const AutomationWorkflow = () => {
       icon: CheckCircle2,
       accent: "text-[#d97706]",
       softBg: "bg-[#fffbeb]",
+      autoRunnable: false,
     },
     {
       id: "schedule",
@@ -135,6 +145,7 @@ const AutomationWorkflow = () => {
       icon: CalendarClock,
       accent: "text-[#65a30d]",
       softBg: "bg-[#f7fee7]",
+      autoRunnable: false,
     },
     {
       id: "publish",
@@ -145,6 +156,7 @@ const AutomationWorkflow = () => {
       icon: Send,
       accent: "text-[#16a34a]",
       softBg: "bg-[#f0fdf4]",
+      autoRunnable: false,
     },
   ];
 
@@ -216,8 +228,49 @@ const AutomationWorkflow = () => {
     }
   };
 
+  const runScheduler = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("workflow-scheduler");
+      if (error) {
+        showError("Lỗi khi chạy scheduler: " + error.message);
+      } else {
+        showSuccess("Workflow scheduler đã chạy thành công!");
+        setLastRun(new Date().toLocaleString("vi-VN"));
+        setIsInitialized(prev => !prev); // Trigger stats refresh
+      }
+    } catch (err: any) {
+      showError("Lỗi khi gọi scheduler: " + err.message);
+    }
+  };
+
+  const toggleAutoMode = () => {
+    setAutoMode(!autoMode);
+    if (!autoMode) {
+      showSuccess("Auto-pilot mode activated. Workflow sẽ tự động chạy mỗi giờ.");
+      // Start the interval
+      const intervalId = setInterval(() => {
+        runScheduler();
+      }, 3600000); // Every hour
+      (window as any).__workflowInterval = intervalId;
+    } else {
+      showSuccess("Auto-pilot mode deactivated.");
+      // Clear the interval
+      if ((window as any).__workflowInterval) {
+        clearInterval((window as any).__workflowInterval);
+        (window as any).__workflowInterval = null;
+      }
+    }
+  };
+
   useEffect(() => {
     fetchControl().catch(() => {});
+    
+    // Cleanup interval on unmount
+    return () => {
+      if ((window as any).__workflowInterval) {
+        clearInterval((window as any).__workflowInterval);
+      }
+    };
   }, []);
 
   const workflowMode: WorkflowMode = control?.mode || "running";
@@ -304,6 +357,30 @@ const AutomationWorkflow = () => {
               {loadingControl ? "Đang tải..." : isPaused ? "Đã tạm dừng" : "Đang hoạt động"}
             </div>
 
+            {/* Auto-pilot toggle */}
+            <button
+              type="button"
+              onClick={toggleAutoMode}
+              className={`inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold shadow-lg transition ${
+                autoMode
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-purple-200 hover:from-purple-600 hover:to-pink-600"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              {autoMode ? "Auto-pilot: ON" : "Auto-pilot: OFF"}
+            </button>
+
+            {/* Scheduler run button */}
+            <button
+              type="button"
+              onClick={runScheduler}
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-600 transition"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Run Scheduler
+            </button>
+
             {/* Pause/Resume button */}
             <button
               type="button"
@@ -342,10 +419,26 @@ const AutomationWorkflow = () => {
         )}
 
         <div className="border-t border-[#f6f1e8] bg-[#fcfaf6] p-4 sm:p-6">
+          {/* Auto-pilot status */}
+          {autoMode && (
+            <div className="mb-4 rounded-[1.5rem] border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 text-sm">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-purple-500" />
+                <span className="font-bold text-purple-700">Auto-pilot mode active</span>
+                <span className="ml-auto text-xs text-purple-500">
+                  {lastRun ? `Last run: ${lastRun}` : "Ready to run"}
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-purple-600">
+                Workflow sẽ tự động chạy các bước có thể tự động mỗi giờ. Bạn vẫn có thể can thiệp thủ công.
+              </p>
+            </div>
+          )}
+
           <div className="mb-4 rounded-[1.5rem] border border-[#efe8dd] bg-white px-4 py-3 text-sm text-slate-600">
             {isPaused
               ? "Workflow đã được tạm dừng. Admin có thể tiếp tục lại bất cứ lúc nào."
-              : "Workflow đang ở chế độ hoạt động. Bạn có thể tạm dừng nhanh nếu cần kiểm tra hoặc bảo trì."}
+              : "Workflow đang ở chế độ hoạt động. Các bước tự động sẽ chạy định kỳ, bước duyệt vẫn cần admin xác nhận."}
           </div>
 
           <div className="rounded-[2rem] border border-[#efe8dd] bg-[#fdfbf7] p-4 sm:p-6">
@@ -389,6 +482,12 @@ const AutomationWorkflow = () => {
                             <span className={`h-2 w-2 rounded-full ${state.dot} ${!isPaused && step.status === "running" ? "animate-pulse" : ""}`} />
                             {state.label}
                           </span>
+                          {step.autoRunnable && autoMode && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 border border-purple-200 px-2 py-1 text-[10px] font-bold text-purple-600">
+                              <Sparkles className="h-3 w-3" />
+                              AUTO
+                            </span>
+                          )}
                           {isRunnable && !isPaused && (
                             <button
                               type="button"
