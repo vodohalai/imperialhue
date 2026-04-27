@@ -54,7 +54,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5.4-mini', // Model mới theo yêu cầu
           messages: [
             {
               role: 'system',
@@ -81,16 +81,13 @@ serve(async (req) => {
           topic_id: topic.id,
           title: generated.title,
           status: 'draft_ai',
-          // content will be stored later, but we need content field? table doesn't have content.
-          // We'll create an article record separately? The ai_content_jobs doesn't have content.
-          // Actually, the existing flow stores content in articles table. For now, we just create draft job.
         }])
         .select()
         .single()
 
       if (insertError) throw insertError
 
-      // Also create an article in articles table to hold content
+      // Create article record to hold content
       const slug = generated.title
         ?.toLowerCase()
         .normalize('NFD')
@@ -109,7 +106,7 @@ serve(async (req) => {
           excerpt: generated.excerpt || '',
           category: generated.category || 'Du lịch',
           status: 'draft',
-          image_url: '', // Will be filled by image step
+          image_url: '',
         }])
         .select()
         .single()
@@ -151,20 +148,59 @@ serve(async (req) => {
         })
       }
 
-      // For now, generate placeholder image based on title
-      const imagePrompt = job.title ? `A beautiful photo of ${job.title} in Hue, Vietnam` : 'Imperial Hue hotel room'
-      // Using a placeholder service that generates images from text (unsplash source)
-      const placeholderUrl = `https://source.unsplash.com/800x600/?${encodeURIComponent(imagePrompt)}`
+      const openaiKey = Deno.env.get('OPENAI_API_KEY')
+      if (!openaiKey) {
+        throw new Error('Missing OPENAI_API_KEY')
+      }
 
-      // Update job with image_url
-      const { error: updateError } = await supabaseAdmin
+      // Generate cover image using OpenAI Images API
+      const imagePrompt = job.title
+        ? `A beautiful, professional cover photo for a travel blog article titled "${job.title}" about Hue, Vietnam. Cinematic, warm lighting, 16:9, no text.`
+        : 'Imperial Hue boutique hotel, luxury room, warm ambiance, Cinematic style'
+
+      const imgResponse = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-image-2',   // Model ảnh theo yêu cầu
+          prompt: imagePrompt,
+          n: 1,
+          size: '1024x1024',
+        }),
+      })
+
+      if (!imgResponse.ok) {
+        const errData = await imgResponse.json()
+        throw new Error(`OpenAI image generation failed: ${errData.error?.message || 'Unknown'}`)
+      }
+
+      const imgData = await imgResponse.json()
+      const imageUrl = imgData.data?.[0]?.url
+
+      if (!imageUrl) {
+        throw new Error('Image generation returned no URL')
+      }
+
+      // Update job with the generated image URL
+      const { error: updateJobError } = await supabaseAdmin
         .from('ai_content_jobs')
-        .update({ image_url: placeholderUrl })
+        .update({ image_url: imageUrl })
         .eq('id', job.id)
 
-      if (updateError) throw updateError
+      if (updateJobError) throw updateJobError
 
-      return new Response(JSON.stringify({ success: true, image_url: placeholderUrl }), {
+      // If the job has an article, update the article's image as well
+      if (job.article_id) {
+        await supabaseAdmin
+          .from('articles')
+          .update({ image_url: imageUrl })
+          .eq('id', job.article_id)
+      }
+
+      return new Response(JSON.stringify({ success: true, image_url: imageUrl }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
