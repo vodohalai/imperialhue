@@ -80,6 +80,7 @@ const AutomationWorkflow = () => {
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [researchResults, setResearchResults] = useState<SeoTopic[] | null>(null);
+  const [researchErrors, setResearchErrors] = useState<string[] | null>(null);
   const { stats, loading: statsLoading } = useAutomationStats(refreshTrigger);
 
   const steps: WorkflowStep[] = [
@@ -308,25 +309,32 @@ const AutomationWorkflow = () => {
 
     setRunningStep(stepId);
     // Reset research results when about to run
-    if (stepId === 'research') setResearchResults(null);
+    if (stepId === 'research') {
+      setResearchResults(null);
+      setResearchErrors(null);
+    }
     try {
       const { data, error } = await supabase.functions.invoke('automation-run', {
         body: { action },
       });
       if (error) throw error;
       if (data?.success) {
-        const successMsg = action === 'research'
-          ? `Đã tạo ${data.topics?.length || 0} chủ đề SEO mới`
-          : `Bước ${stepId} đã chạy thành công!`;
-        showSuccess(successMsg);
-
-        // If research, store the topics for display
-        if (action === 'research' && data.topics?.length > 0) {
-          setResearchResults(data.topics);
-          // Auto-select the research step to show results
+        if (action === 'research') {
+          const topics: SeoTopic[] = data.topics || [];
+          const errors: string[] = data.errors || [];
+          setResearchResults(topics);
+          setResearchErrors(errors);
+          const createdCount = topics.length;
+          const errorCount = errors.length;
+          if (errorCount > 0) {
+            showError(`Đã tạo ${createdCount} chủ đề, nhưng có ${errorCount} lỗi. Xem chi tiết trong Module Detail.`);
+          } else {
+            showSuccess(`Đã tạo ${createdCount} chủ đề SEO mới`);
+          }
           setSelectedId('research');
+        } else {
+          showSuccess(`Bước ${stepId} đã chạy thành công!`);
         }
-
         setRefreshTrigger(prev => prev + 1);
         setIsInitialized(prev => !prev);
       } else {
@@ -562,7 +570,7 @@ const AutomationWorkflow = () => {
             <selectedStep.icon className="h-7 w-7" />
           </div>
           <p className="mt-4 text-sm font-bold text-slate-900">
-            {selectedStep.id === "research" && researchResults && researchResults.length > 0
+            {selectedStep.id === "research" && researchResults
               ? `${researchResults.length} topics vừa được tạo`
               : selectedStep.meta}
           </p>
@@ -571,9 +579,11 @@ const AutomationWorkflow = () => {
         <p className="mt-5 text-sm leading-7 text-slate-600">{selectedStep.desc}</p>
 
         {/* Research results display */}
-        {selectedStep.id === "research" && researchResults && researchResults.length > 0 && (
+        {selectedStep.id === "research" && researchResults && (
           <div className="mt-6 space-y-3">
-            <h4 className="text-sm font-bold text-slate-900">Chủ đề vừa tạo</h4>
+            <h4 className="text-sm font-bold text-slate-900">
+              {researchResults.length > 0 ? "Chủ đề vừa tạo" : "Không có chủ đề mới"}
+            </h4>
             {researchResults.map((topic, idx) => (
               <div
                 key={idx}
@@ -596,6 +606,16 @@ const AutomationWorkflow = () => {
                 </div>
               </div>
             ))}
+            {researchErrors && researchErrors.length > 0 && (
+              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
+                <h5 className="text-sm font-bold text-red-800">Lỗi khi lưu chủ đề</h5>
+                <ul className="mt-2 list-inside list-disc text-xs text-red-700">
+                  {researchErrors.map((err, idx) => (
+                    <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         )}
 

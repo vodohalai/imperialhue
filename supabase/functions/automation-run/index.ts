@@ -63,7 +63,9 @@ serve(async (req) => {
       }
 
       const insertedTopics = []
-      for (const topic of topics) {
+      const errors: string[] = []
+      for (let i = 0; i < topics.length; i++) {
+        const topic = topics[i]
         const { data, error } = await supabaseAdmin
           .from('seo_topics')
           .insert([{
@@ -78,14 +80,15 @@ serve(async (req) => {
           .single()
 
         if (error) {
-          console.error("[automation-run] Error inserting topic:", error.message)
+          console.error(`[automation-run] Error inserting topic ${i}:`, error.message)
+          errors.push(`Topic ${i+1}: ${error.message}`)
           continue
         }
         insertedTopics.push(data)
       }
 
-      console.log("[automation-run] Research completed, inserted topics:", insertedTopics.length)
-      return new Response(JSON.stringify({ success: true, topics: insertedTopics }), {
+      console.log(`[automation-run] Research completed. Inserted: ${insertedTopics.length} topics, Errors: ${errors.length}`)
+      return new Response(JSON.stringify({ success: true, topics: insertedTopics, errors }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
