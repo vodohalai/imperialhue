@@ -389,17 +389,21 @@ serve(async (req) => {
         )
       }
 
-      const imageUrl = imgData?.data?.[0]?.url
+      const imageObject = imgData?.data?.[0]
+      const directUrl = imageObject?.url || null
+      const base64Image = imageObject?.b64_json || null
+      const imageUrl = directUrl || (base64Image ? `data:image/png;base64,${base64Image}` : null)
 
       console.log("[automation-run] Image generation response received", {
-        hasImageUrl: Boolean(imageUrl),
-        imageUrl,
+        hasDirectUrl: Boolean(directUrl),
+        hasBase64: Boolean(base64Image),
+        resolvedImageUrlType: directUrl ? "url" : base64Image ? "data-url" : "none",
       })
 
       if (!imageUrl) {
-        console.error("[automation-run] Image generation returned no URL", { imgData })
+        console.error("[automation-run] Image generation returned neither url nor b64_json", { imgData })
         return new Response(
-          JSON.stringify({ success: false, message: "Image generation returned no URL" }),
+          JSON.stringify({ success: false, message: "Image generation returned no usable image data" }),
           { headers: jsonHeaders },
         )
       }
@@ -426,13 +430,13 @@ serve(async (req) => {
       console.log("[automation-run] Updated ai_content_jobs.image_url", {
         jobId: job.id,
         articleId: job.article_id,
-        imageUrl,
+        imageUrlType: directUrl ? "url" : "data-url",
       })
 
       if (job.article_id) {
         console.log("[automation-run] Attempting to update article image_url", {
           articleId: job.article_id,
-          imageUrl,
+          imageUrlType: directUrl ? "url" : "data-url",
         })
 
         const { error: updateArticleError } = await supabaseAdmin
@@ -466,7 +470,11 @@ serve(async (req) => {
             message: verifyArticleError.message,
           })
         } else {
-          console.log("[automation-run] Verified article after image update", updatedArticle)
+          console.log("[automation-run] Verified article after image update", {
+            id: updatedArticle?.id,
+            hasImageUrl: Boolean(updatedArticle?.image_url),
+            imageUrlPreview: updatedArticle?.image_url?.slice?.(0, 80),
+          })
         }
       } else {
         console.error("[automation-run] Job has no article_id, so article image cannot be updated", {
@@ -475,7 +483,12 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ success: true, image_url: imageUrl, article_id: job.article_id }),
+        JSON.stringify({
+          success: true,
+          image_url: imageUrl,
+          article_id: job.article_id,
+          image_source: directUrl ? "url" : "b64_json",
+        }),
         { headers: jsonHeaders },
       )
     }
