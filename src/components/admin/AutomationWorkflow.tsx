@@ -83,6 +83,7 @@ const AutomationWorkflow = () => {
   const [savingControl, setSavingControl] = useState(false);
   const [runningStep, setRunningStep] = useState<string | null>(null);
   const [runningFullWorkflow, setRunningFullWorkflow] = useState(false);
+  const [approving, setApproving] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -466,6 +467,67 @@ const AutomationWorkflow = () => {
     }
   };
 
+  const handleApprove = async () => {
+    setApproving(true);
+
+    try {
+      const { data: job, error: jobError } = await supabase
+        .from("ai_content_jobs")
+        .select("*")
+        .eq("status", "draft_ai")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (jobError) {
+        throw new Error(jobError.message);
+      }
+
+      if (!job) {
+        throw new Error("Không có bài nào đang chờ duyệt.");
+      }
+
+      const scheduledFor = new Date();
+      scheduledFor.setHours(6, 0, 0, 0);
+
+      const { error: updateJobError } = await supabase
+        .from("ai_content_jobs")
+        .update({
+          status: "scheduled",
+          scheduled_for: scheduledFor.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", job.id);
+
+      if (updateJobError) {
+        throw new Error(updateJobError.message);
+      }
+
+      if (job.article_id) {
+        const { error: updateArticleError } = await supabase
+          .from("articles")
+          .update({
+            status: "published",
+            published_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", job.article_id);
+
+        if (updateArticleError) {
+          throw new Error(updateArticleError.message);
+        }
+      }
+
+      setRefreshTrigger((prev) => prev + 1);
+      setSelectedId("schedule");
+      showSuccess("Đã duyệt bài và chuyển sang bước lên lịch.");
+    } catch (err: any) {
+      showError(err.message || "Không thể duyệt bài");
+    } finally {
+      setApproving(false);
+    }
+  };
+
   return (
     <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
       <div className="overflow-hidden rounded-[2.25rem] border border-[#ece6dd] bg-white shadow-sm">
@@ -737,6 +799,22 @@ const AutomationWorkflow = () => {
               ))
             )}
           </div>
+        )}
+
+        {selectedStep.id === "review" && stats.waitingReview > 0 && (
+          <button
+            type="button"
+            onClick={handleApprove}
+            disabled={approving}
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0D9488] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-teal-100 transition hover:bg-[#0b7a6f] disabled:opacity-60"
+          >
+            {approving ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            {approving ? "Đang duyệt..." : "Duyệt"}
+          </button>
         )}
 
         {selectedStep.id === "research" && researchErrors.length > 0 && (
