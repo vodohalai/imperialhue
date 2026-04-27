@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-import type { WorkflowControl, WorkflowMode } from "@/integrations/supabase/types";
+import type { WorkflowControl, WorkflowMode, SeoTopic } from "@/integrations/supabase/types";
 import { useAutomationStats } from "@/hooks/useAutomationStats";
 
 type WorkflowStatus = "ready" | "running" | "waiting" | "done";
@@ -79,6 +79,7 @@ const AutomationWorkflow = () => {
   const [autoMode, setAutoMode] = useState<boolean>(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [researchResults, setResearchResults] = useState<SeoTopic[] | null>(null);
   const { stats, loading: statsLoading } = useAutomationStats(refreshTrigger);
 
   const steps: WorkflowStep[] = [
@@ -163,7 +164,7 @@ const AutomationWorkflow = () => {
 
   const selectedStep = useMemo(
     () => steps.find((step) => step.id === selectedId) || steps[0],
-    [selectedId, steps, stats],
+    [selectedId, steps],
   );
 
   const fetchControl = async () => {
@@ -306,6 +307,8 @@ const AutomationWorkflow = () => {
     if (!action) return;
 
     setRunningStep(stepId);
+    // Reset research results when about to run
+    if (stepId === 'research') setResearchResults(null);
     try {
       const { data, error } = await supabase.functions.invoke('automation-run', {
         body: { action },
@@ -316,6 +319,14 @@ const AutomationWorkflow = () => {
           ? `Đã tạo ${data.topics?.length || 0} chủ đề SEO mới`
           : `Bước ${stepId} đã chạy thành công!`;
         showSuccess(successMsg);
+
+        // If research, store the topics for display
+        if (action === 'research' && data.topics?.length > 0) {
+          setResearchResults(data.topics);
+          // Auto-select the research step to show results
+          setSelectedId('research');
+        }
+
         setRefreshTrigger(prev => prev + 1);
         setIsInitialized(prev => !prev);
       } else {
@@ -550,10 +561,43 @@ const AutomationWorkflow = () => {
           <div className={`flex h-14 w-14 items-center justify-center rounded-2xl bg-white ${selectedStep.accent} shadow-sm`}>
             <selectedStep.icon className="h-7 w-7" />
           </div>
-          <p className="mt-4 text-sm font-bold text-slate-900">{selectedStep.meta}</p>
+          <p className="mt-4 text-sm font-bold text-slate-900">
+            {selectedStep.id === "research" && researchResults && researchResults.length > 0
+              ? `${researchResults.length} topics vừa được tạo`
+              : selectedStep.meta}
+          </p>
         </div>
 
         <p className="mt-5 text-sm leading-7 text-slate-600">{selectedStep.desc}</p>
+
+        {/* Research results display */}
+        {selectedStep.id === "research" && researchResults && researchResults.length > 0 && (
+          <div className="mt-6 space-y-3">
+            <h4 className="text-sm font-bold text-slate-900">Chủ đề vừa tạo</h4>
+            {researchResults.map((topic, idx) => (
+              <div
+                key={idx}
+                className="rounded-2xl border border-[#f3dcc8] bg-[#fff8f2] p-4"
+              >
+                <p className="font-semibold text-slate-900 text-sm">{topic.topic}</p>
+                <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
+                    🔑 {topic.keyword}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
+                    📁 {topic.category}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
+                    🎯 {topic.search_intent}
+                  </span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
+                    ⭐ {topic.priority_score}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-6 space-y-3">
           {[
