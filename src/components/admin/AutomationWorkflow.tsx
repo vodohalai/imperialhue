@@ -653,18 +653,6 @@ const AutomationWorkflow = () => {
           </div>
         )}
 
-        <div className="mt-6 space-y-3">
-          {[
-            "Workflow giờ được sắp xếp theo luồng dọc để dễ theo dõi và dễ mở rộng.",
-            "Mỗi bước thể hiện rõ trạng thái hiện tại và nội dung đang xử lý.",
-            "Khi nối backend thật, từng bước có thể hiển thị dữ liệu realtime và hành động trực tiếp.",
-          ].map((item) => (
-            <div key={item} className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm leading-6 text-slate-600">
-              {item}
-            </div>
-          ))}
-        </div>
-
         <div className="mt-6 grid grid-cols-2 gap-3">
           <div className="rounded-[1.5rem] bg-[#f7fbfa] p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Queue</p>
