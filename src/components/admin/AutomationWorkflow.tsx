@@ -8,7 +8,6 @@ import {
   Image as ImageIcon,
   PauseCircle,
   PlayCircle,
-  RefreshCw,
   Search,
   Send,
   Sparkles,
@@ -82,6 +81,13 @@ const WORKFLOW_KEY = "blog_automation";
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const getTodayScheduleIso = (timeValue: string) => {
+  const [hours, minutes] = timeValue.split(":").map(Number);
+  const scheduledAt = new Date();
+  scheduledAt.setHours(hours || 0, minutes || 0, 0, 0);
+  return scheduledAt.toISOString();
+};
+
 const AutomationWorkflow = () => {
   const [selectedId, setSelectedId] = useState("writer");
   const [control, setControl] = useState<WorkflowControl | null>(null);
@@ -92,13 +98,13 @@ const AutomationWorkflow = () => {
   const [approving, setApproving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
-  const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [researchErrors, setResearchErrors] = useState<string[]>([]);
   const [researchTopics, setResearchTopics] = useState<SeoTopic[]>([]);
   const [loadingResearchTopics, setLoadingResearchTopics] = useState(false);
   const [reviewItem, setReviewItem] = useState<ReviewItem | null>(null);
   const [loadingReviewItem, setLoadingReviewItem] = useState(false);
+  const [scheduleTime, setScheduleTime] = useState("06:00");
   const { stats } = useAutomationStats(refreshTrigger);
 
   const steps: WorkflowStep[] = [
@@ -159,8 +165,8 @@ const AutomationWorkflow = () => {
     },
     {
       id: "schedule",
-      title: "Schedule 06:00",
-      desc: "Đưa bài đã duyệt vào hàng chờ đăng tự động lúc 06:00 sáng.",
+      title: "Schedule",
+      desc: "Admin chọn giờ đăng rồi đưa bài đã duyệt vào hàng chờ tự động.",
       meta: `${stats.scheduledJobs} scheduled`,
       status: stats.scheduledJobs > 0 ? "running" : "ready",
       icon: CalendarClock,
@@ -325,18 +331,6 @@ const AutomationWorkflow = () => {
     setRefreshTrigger((prev) => prev + 1);
   };
 
-  const runScheduler = async () => {
-    const { error } = await supabase.functions.invoke("workflow-scheduler");
-    if (error) {
-      showError("Lỗi khi chạy scheduler: " + error.message);
-      return;
-    }
-
-    showSuccess("Workflow scheduler đã chạy thành công!");
-    setLastRun(new Date().toLocaleString("vi-VN"));
-    setRefreshTrigger((prev) => prev + 1);
-  };
-
   const invokeAutomation = async (action: "research" | "write" | "generate-image") => {
     const { data, error } = await supabase.functions.invoke("automation-run", {
       body: { action },
@@ -361,7 +355,7 @@ const AutomationWorkflow = () => {
       if (next) {
         showSuccess("Auto-pilot mode activated. Workflow sẽ tự động chạy mỗi giờ.");
         const intervalId = setInterval(() => {
-          runScheduler();
+          setRefreshTrigger((value) => value + 1);
         }, 3600000);
         workflowWindow.__workflowInterval = intervalId;
       } else {
@@ -549,14 +543,11 @@ const AutomationWorkflow = () => {
         throw new Error("Không có bài nào đang chờ duyệt.");
       }
 
-      const scheduledFor = new Date();
-      scheduledFor.setHours(6, 0, 0, 0);
-
       const { error: updateJobError } = await supabase
         .from("ai_content_jobs")
         .update({
           status: "scheduled",
-          scheduled_for: scheduledFor.toISOString(),
+          scheduled_for: getTodayScheduleIso(scheduleTime),
           updated_at: new Date().toISOString(),
         })
         .eq("id", job.id);
@@ -565,24 +556,9 @@ const AutomationWorkflow = () => {
         throw new Error(updateJobError.message);
       }
 
-      if (job.article_id) {
-        const { error: updateArticleError } = await supabase
-          .from("articles")
-          .update({
-            status: "published",
-            published_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", job.article_id);
-
-        if (updateArticleError) {
-          throw new Error(updateArticleError.message);
-        }
-      }
-
       setRefreshTrigger((prev) => prev + 1);
       setSelectedId("schedule");
-      showSuccess("Đã duyệt bài và chuyển sang bước lên lịch.");
+      showSuccess(`Đã duyệt bài và lên lịch đăng lúc ${scheduleTime}.`);
     } catch (err: any) {
       showError(err.message || "Không thể duyệt bài");
     } finally {
@@ -632,7 +608,7 @@ const AutomationWorkflow = () => {
   return (
     <div className="grid gap-6 lg:grid-cols-[1.35fr_0.65fr]">
       <div className="overflow-hidden rounded-[2.25rem] border border-[#ece6dd] bg-white shadow-sm">
-        <div className="flex flex-col gap-4 border-b border-[#f1ebe3] px-5 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 border-b border-[#f1ebe3] px-5 py-4 sm:px-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0D9488]/10 text-[#0D9488]">
               <Bot className="h-5 w-5" />
@@ -644,6 +620,19 @@ const AutomationWorkflow = () => {
           </div>
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="rounded-2xl border border-[#dfe9e6] bg-[#f7fbfa] px-4 py-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Giờ đăng mặc định</p>
+              <div className="mt-2 flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-[#0D9488]" />
+                <input
+                  type="time"
+                  value={scheduleTime}
+                  onChange={(e) => setScheduleTime(e.target.value)}
+                  className="rounded-xl border border-[#d9e7e5] bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none"
+                />
+              </div>
+            </div>
+
             <div
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${
                 isPaused ? "border-orange-200 bg-orange-50 text-orange-700" : "border-teal-200 bg-teal-50 text-teal-700"
@@ -678,15 +667,6 @@ const AutomationWorkflow = () => {
             >
               <Sparkles className="h-4 w-4" />
               {autoMode ? "Auto-pilot: ON" : "Auto-pilot: OFF"}
-            </button>
-
-            <button
-              type="button"
-              onClick={runScheduler}
-              className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-600"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Run Scheduler
             </button>
 
             <button
@@ -730,12 +710,10 @@ const AutomationWorkflow = () => {
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-purple-500" />
                 <span className="font-bold text-purple-700">Auto-pilot mode active</span>
-                <span className="ml-auto text-xs text-purple-500">
-                  {lastRun ? `Last run: ${lastRun}` : "Ready to run"}
-                </span>
+                <span className="ml-auto text-xs text-purple-500">Auto refresh mỗi giờ</span>
               </div>
               <p className="mt-1 text-xs text-purple-600">
-                Workflow sẽ tự động chạy các bước có thể tự động mỗi giờ. Bạn vẫn có thể can thiệp thủ công.
+                Workflow sẽ tự động cập nhật trạng thái, còn lịch đăng được admin chọn trực tiếp ở phần đầu canvas.
               </p>
             </div>
           )}
@@ -743,7 +721,7 @@ const AutomationWorkflow = () => {
           <div className="mb-4 rounded-[1.5rem] border border-[#efe8dd] bg-white px-4 py-3 text-sm text-slate-600">
             {isPaused
               ? "Workflow đã được tạm dừng. Admin có thể tiếp tục lại bất cứ lúc nào."
-              : "Workflow đang ở chế độ hoạt động. Các bước tự động sẽ chạy định kỳ, bước duyệt vẫn cần admin xác nhận."}
+              : `Workflow đang hoạt động. Giờ đăng hiện tại là ${scheduleTime} và sẽ được dùng khi bạn duyệt bài.`}
           </div>
 
           <div className="rounded-[2rem] border border-[#efe8dd] bg-[#fdfbf7] p-4 sm:p-6">
@@ -941,6 +919,11 @@ const AutomationWorkflow = () => {
                   />
                 </div>
 
+                <div className="rounded-2xl border border-[#dfe9e6] bg-[#f7fbfa] p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Giờ đăng sẽ áp dụng</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-800">{scheduleTime}</p>
+                </div>
+
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <button
                     type="button"
@@ -953,7 +936,7 @@ const AutomationWorkflow = () => {
                     ) : (
                       <CheckCircle2 className="h-4 w-4" />
                     )}
-                    {approving ? "Đang duyệt..." : "Duyệt"}
+                    {approving ? "Đang duyệt..." : "Duyệt & lên lịch"}
                   </button>
 
                   <button

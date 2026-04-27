@@ -309,7 +309,7 @@ serve(async (req) => {
 
       const imagePrompt = job.title
         ? `A beautiful, professional cover photo for a travel blog article titled "${job.title}" about Hue, Vietnam. Cinematic, warm lighting, 16:9, no text.`
-        : "Imperial Hue boutique hotel, luxury room, warm ambiance, cinematic style"
+        : "Imperial Hue boutique hotel, luxury room, cinematic style"
 
       const imgResponse = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
@@ -347,7 +347,10 @@ serve(async (req) => {
 
       const { error: updateJobError } = await supabaseAdmin
         .from("ai_content_jobs")
-        .update({ image_url: imageUrl })
+        .update({
+          image_url: imageUrl,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", job.id)
 
       if (updateJobError) {
@@ -360,7 +363,10 @@ serve(async (req) => {
       if (job.article_id) {
         const { error: updateArticleError } = await supabaseAdmin
           .from("articles")
-          .update({ image_url: imageUrl })
+          .update({
+            image_url: imageUrl,
+            updated_at: new Date().toISOString(),
+          })
           .eq("id", job.article_id)
 
         if (updateArticleError) {
@@ -372,7 +378,7 @@ serve(async (req) => {
       }
 
       return new Response(
-        JSON.stringify({ success: true, image_url: imageUrl }),
+        JSON.stringify({ success: true, image_url: imageUrl, article_id: job.article_id }),
         { headers: jsonHeaders },
       )
     }
