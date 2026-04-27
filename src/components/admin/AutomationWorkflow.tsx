@@ -12,11 +12,12 @@ import {
   Search,
   Send,
   Sparkles,
+  Trash2,
   Wand2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-import type { WorkflowControl, WorkflowMode, SeoTopic } from "@/integrations/supabase/types";
+import type { Article, WorkflowControl, WorkflowMode, SeoTopic, AiContentJob } from "@/integrations/supabase/types";
 import { useAutomationStats } from "@/hooks/useAutomationStats";
 
 type WorkflowStatus = "ready" | "running" | "waiting" | "done";
@@ -35,6 +36,11 @@ type WorkflowStep = {
 
 type WorkflowWindow = Window & {
   __workflowInterval?: ReturnType<typeof setInterval>;
+};
+
+type ReviewItem = {
+  job: AiContentJob;
+  article: Article | null;
 };
 
 const statusMap: Record<
@@ -84,12 +90,15 @@ const AutomationWorkflow = () => {
   const [runningStep, setRunningStep] = useState<string | null>(null);
   const [runningFullWorkflow, setRunningFullWorkflow] = useState(false);
   const [approving, setApproving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [researchErrors, setResearchErrors] = useState<string[]>([]);
   const [researchTopics, setResearchTopics] = useState<SeoTopic[]>([]);
   const [loadingResearchTopics, setLoadingResearchTopics] = useState(false);
+  const [reviewItem, setReviewItem] = useState<ReviewItem | null>(null);
+  const [loadingReviewItem, setLoadingReviewItem] = useState(false);
   const { stats } = useAutomationStats(refreshTrigger);
 
   const steps: WorkflowStep[] = [
@@ -232,9 +241,61 @@ const AutomationWorkflow = () => {
     return topics;
   };
 
+  const fetchReviewItem = async () => {
+    setLoadingReviewItem(true);
+
+    const { data: job, error: jobError } = await supabase
+      .from("ai_content_jobs")
+      .select("*")
+      .eq("status", "draft_ai")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (jobError) {
+      setLoadingReviewItem(false);
+      showError(jobError.message);
+      return;
+    }
+
+    if (!job) {
+      setReviewItem(null);
+      setLoadingReviewItem(false);
+      return;
+    }
+
+    let article: Article | null = null;
+
+    if (job.article_id) {
+      const { data: articleData, error: articleError } = await supabase
+        .from("articles")
+        .select("*")
+        .eq("id", job.article_id)
+        .maybeSingle();
+
+      if (articleError) {
+        setLoadingReviewItem(false);
+        showError(articleError.message);
+        return;
+      }
+
+      article = articleData as Article | null;
+    }
+
+    setReviewItem({
+      job: job as AiContentJob,
+      article,
+    });
+    setLoadingReviewItem(false);
+  };
+
   useEffect(() => {
     if (selectedId === "research") {
       fetchResearchTopics().catch(() => undefined);
+    }
+
+    if (selectedId === "review") {
+      fetchReviewItem().catch(() => undefined);
     }
   }, [selectedId, refreshTrigger]);
 
@@ -459,6 +520,7 @@ const AutomationWorkflow = () => {
       }
 
       setSelectedId("review");
+      await fetchReviewItem();
       showSuccess("Đã chạy full workflow đến bước chờ duyệt.");
     } catch (err: any) {
       showError(err.message || "Không thể chạy full workflow");
@@ -525,6 +587,45 @@ const AutomationWorkflow = () => {
       showError(err.message || "Không thể duyệt bài");
     } finally {
       setApproving(false);
+    }
+  };
+
+  const handleDeleteReviewItem = async () => {
+    if (!reviewItem?.job) {
+      showError("Không có bài nào để xóa.");
+      return;
+    }
+
+    setDeleting(true);
+
+    try {
+      if (reviewItem.article?.id) {
+        const { error: articleDeleteError } = await supabase
+          .from("articles")
+          .delete()
+          .eq("id", reviewItem.article.id);
+
+        if (articleDeleteError) {
+          throw new Error(articleDeleteError.message);
+        }
+      }
+
+      const { error: jobDeleteError } = await supabase
+        .from("ai_content_jobs")
+        .delete()
+        .eq("id", reviewItem.job.id);
+
+      if (jobDeleteError) {
+        throw new Error(jobDeleteError.message);
+      }
+
+      setReviewItem(null);
+      setRefreshTrigger((prev) => prev + 1);
+      showSuccess("Đã xoá bài chờ duyệt.");
+    } catch (err: any) {
+      showError(err.message || "Không thể xoá bài");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -767,7 +868,9 @@ const AutomationWorkflow = () => {
           <p className="mt-4 text-sm font-bold text-slate-900">
             {selectedStep.id === "research" && researchTopics.length > 0
               ? `${researchTopics.length} topic pending trong hệ thống`
-              : selectedStep.meta}
+              : selectedStep.id === "review" && reviewItem?.article
+                ? reviewItem.article.title
+                : selectedStep.meta}
           </p>
         </div>
 
@@ -801,20 +904,75 @@ const AutomationWorkflow = () => {
           </div>
         )}
 
-        {selectedStep.id === "review" && stats.waitingReview > 0 && (
-          <button
-            type="button"
-            onClick={handleApprove}
-            disabled={approving}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0D9488] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-teal-100 transition hover:bg-[#0b7a6f] disabled:opacity-60"
-          >
-            {approving ? (
-              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+        {selectedStep.id === "review" && (
+          <div className="mt-6 space-y-4">
+            {loadingReviewItem ? (
+              <div className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
+                Đang tải bài chờ duyệt...
+              </div>
+            ) : !reviewItem?.article ? (
+              <div className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
+                Chưa có bài nào đang chờ duyệt.
+              </div>
             ) : (
-              <CheckCircle2 className="h-4 w-4" />
+              <>
+                {reviewItem.article.image_url && (
+                  <img
+                    src={reviewItem.article.image_url}
+                    alt={reviewItem.article.title}
+                    className="h-44 w-full rounded-2xl object-cover"
+                    loading="lazy"
+                  />
+                )}
+
+                <div className="rounded-2xl border border-[#ece6dd] bg-[#fffdf9] p-4">
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#f97316]">
+                    {reviewItem.article.category}
+                  </p>
+                  <h4 className="mt-2 text-lg font-black text-slate-900">{reviewItem.article.title}</h4>
+                  <p className="mt-3 text-sm leading-6 text-slate-600">{reviewItem.article.excerpt}</p>
+                </div>
+
+                <div className="rounded-2xl border border-[#ece6dd] bg-white p-4">
+                  <p className="mb-3 text-sm font-bold text-slate-900">Xem nhanh nội dung</p>
+                  <div
+                    className="max-h-72 overflow-auto prose prose-sm max-w-none prose-p:text-slate-600 prose-headings:text-slate-900"
+                    dangerouslySetInnerHTML={{ __html: reviewItem.article.content }}
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={handleApprove}
+                    disabled={approving}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#0D9488] px-5 py-3 text-sm font-bold text-white shadow-lg shadow-teal-100 transition hover:bg-[#0b7a6f] disabled:opacity-60"
+                  >
+                    {approving ? (
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+                    ) : (
+                      <CheckCircle2 className="h-4 w-4" />
+                    )}
+                    {approving ? "Đang duyệt..." : "Duyệt"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDeleteReviewItem}
+                    disabled={deleting}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:opacity-60"
+                  >
+                    {deleting ? (
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-red-400/70 border-t-transparent" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                    {deleting ? "Đang xoá..." : "Xoá bài"}
+                  </button>
+                </div>
+              </>
             )}
-            {approving ? "Đang duyệt..." : "Duyệt"}
-          </button>
+          </div>
         )}
 
         {selectedStep.id === "research" && researchErrors.length > 0 && (
