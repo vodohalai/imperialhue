@@ -74,6 +74,8 @@ const statusMap: Record<
 
 const WORKFLOW_KEY = "blog_automation";
 
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const AutomationWorkflow = () => {
   const [selectedId, setSelectedId] = useState("writer");
   const [control, setControl] = useState<WorkflowControl | null>(null);
@@ -220,11 +222,13 @@ const AutomationWorkflow = () => {
     if (error) {
       setLoadingResearchTopics(false);
       showError(error.message);
-      return;
+      return [];
     }
 
-    setResearchTopics((data || []) as SeoTopic[]);
+    const topics = (data || []) as SeoTopic[];
+    setResearchTopics(topics);
     setLoadingResearchTopics(false);
+    return topics;
   };
 
   useEffect(() => {
@@ -398,17 +402,60 @@ const AutomationWorkflow = () => {
 
     try {
       setSelectedId("research");
-      await invokeAutomation("research");
-      await fetchResearchTopics();
+      const researchData = await invokeAutomation("research");
+      const researchList = await fetchResearchTopics();
       setRefreshTrigger((prev) => prev + 1);
+
+      if ((researchData.errors || []).length > 0) {
+        setResearchErrors(researchData.errors || []);
+      }
+
+      await wait(500);
+
+      if (!researchList.length && !(researchData.topics || []).length) {
+        throw new Error("Không có topic nào sẵn sàng sau bước SEO Research.");
+      }
 
       setSelectedId("writer");
       await invokeAutomation("write");
       setRefreshTrigger((prev) => prev + 1);
 
+      await wait(500);
+
+      const { data: draftJobs, error: draftError } = await supabase
+        .from("ai_content_jobs")
+        .select("id")
+        .eq("status", "draft_ai")
+        .limit(1);
+
+      if (draftError) {
+        throw new Error(draftError.message);
+      }
+
+      if (!draftJobs || draftJobs.length === 0) {
+        throw new Error("Không có draft AI nào sau bước AI Writer.");
+      }
+
       setSelectedId("image");
       await invokeAutomation("generate-image");
       setRefreshTrigger((prev) => prev + 1);
+
+      await wait(500);
+
+      const { data: imageJobs, error: imageError } = await supabase
+        .from("ai_content_jobs")
+        .select("id,image_url")
+        .eq("status", "draft_ai")
+        .not("image_url", "is", null)
+        .limit(1);
+
+      if (imageError) {
+        throw new Error(imageError.message);
+      }
+
+      if (!imageJobs || imageJobs.length === 0) {
+        throw new Error("Chưa tạo được ảnh bìa sau bước AI Image.");
+      }
 
       setSelectedId("review");
       showSuccess("Đã chạy full workflow đến bước chờ duyệt.");
