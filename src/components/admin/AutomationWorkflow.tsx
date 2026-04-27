@@ -247,12 +247,14 @@ const AutomationWorkflow = () => {
     setAutoMode(!autoMode);
     if (!autoMode) {
       showSuccess("Auto-pilot mode activated. Workflow sẽ tự động chạy mỗi giờ.");
+      // Start the interval
       const intervalId = setInterval(() => {
         runScheduler();
       }, 3600000); // Every hour
       (window as any).__workflowInterval = intervalId;
     } else {
       showSuccess("Auto-pilot mode deactivated.");
+      // Clear the interval
       if ((window as any).__workflowInterval) {
         clearInterval((window as any).__workflowInterval);
         (window as any).__workflowInterval = null;
@@ -262,6 +264,8 @@ const AutomationWorkflow = () => {
 
   useEffect(() => {
     fetchControl().catch(() => {});
+    
+    // Cleanup interval on unmount
     return () => {
       if ((window as any).__workflowInterval) {
         clearInterval((window as any).__workflowInterval);
@@ -300,9 +304,8 @@ const AutomationWorkflow = () => {
   };
 
   const runStep = async (stepId: string) => {
-    // Map step id to action, hỗ trợ research, writer, image
+    // Map step id to action
     const actionMap: Record<string, string> = {
-      research: 'research',
       writer: 'write',
       image: 'generate-image',
     };
@@ -317,6 +320,7 @@ const AutomationWorkflow = () => {
       if (error) throw error;
       if (data?.success) {
         showSuccess(`Bước ${stepId} đã chạy thành công!`);
+        // Trigger stats refetch by toggling isInitialized (simple re-render)
         setIsInitialized(prev => !prev);
       } else {
         showError(data?.message || 'Không thể chạy bước này.');
@@ -343,6 +347,7 @@ const AutomationWorkflow = () => {
           </div>
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+            {/* Status badge */}
             <div
               className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-bold ${
                 isPaused ? "border-orange-200 bg-orange-50 text-orange-700" : "border-teal-200 bg-teal-50 text-teal-700"
@@ -352,6 +357,7 @@ const AutomationWorkflow = () => {
               {loadingControl ? "Đang tải..." : isPaused ? "Đã tạm dừng" : "Đang hoạt động"}
             </div>
 
+            {/* Auto-pilot toggle */}
             <button
               type="button"
               onClick={toggleAutoMode}
@@ -365,6 +371,7 @@ const AutomationWorkflow = () => {
               {autoMode ? "Auto-pilot: ON" : "Auto-pilot: OFF"}
             </button>
 
+            {/* Scheduler run button */}
             <button
               type="button"
               onClick={runScheduler}
@@ -374,6 +381,7 @@ const AutomationWorkflow = () => {
               Run Scheduler
             </button>
 
+            {/* Pause/Resume button */}
             <button
               type="button"
               onClick={handleToggleWorkflow}
@@ -386,6 +394,7 @@ const AutomationWorkflow = () => {
               {savingControl ? "Đang cập nhật..." : isPaused ? "Tiếp tục" : "Tạm dừng"}
             </button>
 
+            {/* Init Data button */}
             <button
               type="button"
               onClick={initData}
@@ -410,6 +419,7 @@ const AutomationWorkflow = () => {
         )}
 
         <div className="border-t border-[#f6f1e8] bg-[#fcfaf6] p-4 sm:p-6">
+          {/* Auto-pilot status */}
           {autoMode && (
             <div className="mb-4 rounded-[1.5rem] border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-4 py-3 text-sm">
               <div className="flex items-center gap-2">
@@ -447,7 +457,7 @@ const AutomationWorkflow = () => {
                     : baseState;
                 const isSelected = selectedId === step.id;
                 const isLast = index === steps.length - 1;
-                const isRunnable = ['research', 'writer', 'image'].includes(step.id);
+                const isRunnable = ['writer', 'image'].includes(step.id);
                 const isRunning = runningStep === step.id;
 
                 return (
