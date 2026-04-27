@@ -32,6 +32,10 @@ type WorkflowStep = {
   autoRunnable: boolean;
 };
 
+type WorkflowWindow = Window & {
+  __workflowInterval?: ReturnType<typeof setInterval>;
+};
+
 const statusMap: Record<
   WorkflowStatus,
   {
@@ -74,14 +78,13 @@ const AutomationWorkflow = () => {
   const [control, setControl] = useState<WorkflowControl | null>(null);
   const [loadingControl, setLoadingControl] = useState(true);
   const [savingControl, setSavingControl] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [runningStep, setRunningStep] = useState<string | null>(null);
   const [autoMode, setAutoMode] = useState<boolean>(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [researchResults, setResearchResults] = useState<SeoTopic[] | null>(null);
-  const [researchErrors, setResearchErrors] = useState<string[] | null>(null);
-  const { stats, loading: statsLoading } = useAutomationStats(refreshTrigger);
+  const [researchResults, setResearchResults] = useState<SeoTopic[]>([]);
+  const [researchErrors, setResearchErrors] = useState<string[]>([]);
+  const { stats } = useAutomationStats(refreshTrigger);
 
   const steps: WorkflowStep[] = [
     {
@@ -197,79 +200,77 @@ const AutomationWorkflow = () => {
         setControl(inserted as WorkflowControl);
       }
     }
+
     setLoadingControl(false);
   };
 
   const initTable = async () => {
     setLoadingControl(true);
     try {
-      const { data, error } = await supabase.functions.invoke("init-workflow-table");
+      const { error } = await supabase.functions.invoke("init-workflow-table");
       if (error) {
         showError("Không thể khởi tạo bảng workflow. Lỗi: " + error.message);
       } else {
         showSuccess("Đã khởi tạo bảng workflow thành công. Đang tải lại...");
         await fetchControl();
       }
-    } catch (err: any) {
-      showError("Lỗi khi gọi function khởi tạo: " + err.message);
     } finally {
       setLoadingControl(false);
     }
   };
 
   const initData = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("init-automation-tables");
-      if (error) {
-        showError("Không thể khởi tạo dữ liệu automation. Lỗi: " + error.message);
-      } else {
-        showSuccess("Đã khởi tạo dữ liệu automation thành công. Đang tải lại...");
-        setRefreshTrigger(prev => prev + 1);
-        setIsInitialized(true);
-      }
-    } catch (err: any) {
-      showError("Lỗi khi gọi function khởi tạo dữ liệu: " + err.message);
+    const { error } = await supabase.functions.invoke("init-automation-tables");
+    if (error) {
+      showError("Không thể khởi tạo dữ liệu automation. Lỗi: " + error.message);
+      return;
     }
+
+    showSuccess("Đã khởi tạo dữ liệu automation thành công.");
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const runScheduler = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("workflow-scheduler");
-      if (error) {
-        showError("Lỗi khi chạy scheduler: " + error.message);
-      } else {
-        showSuccess("Workflow scheduler đã chạy thành công!");
-        setLastRun(new Date().toLocaleString("vi-VN"));
-        setRefreshTrigger(prev => prev + 1);
-        setIsInitialized(prev => !prev);
-      }
-    } catch (err: any) {
-      showError("Lỗi khi gọi scheduler: " + err.message);
+    const { error } = await supabase.functions.invoke("workflow-scheduler");
+    if (error) {
+      showError("Lỗi khi chạy scheduler: " + error.message);
+      return;
     }
+
+    showSuccess("Workflow scheduler đã chạy thành công!");
+    setLastRun(new Date().toLocaleString("vi-VN"));
+    setRefreshTrigger((prev) => prev + 1);
   };
 
   const toggleAutoMode = () => {
-    setAutoMode(!autoMode);
-    if (!autoMode) {
-      showSuccess("Auto-pilot mode activated. Workflow sẽ tự động chạy mỗi giờ.");
-      const intervalId = setInterval(() => {
-        runScheduler();
-      }, 3600000);
-      (window as any).__workflowInterval = intervalId;
-    } else {
-      showSuccess("Auto-pilot mode deactivated.");
-      if ((window as any).__workflowInterval) {
-        clearInterval((window as any).__workflowInterval);
-        (window as any).__workflowInterval = null;
+    const workflowWindow = window as WorkflowWindow;
+
+    setAutoMode((prev) => {
+      const next = !prev;
+      if (next) {
+        showSuccess("Auto-pilot mode activated. Workflow sẽ tự động chạy mỗi giờ.");
+        const intervalId = setInterval(() => {
+          runScheduler();
+        }, 3600000);
+        workflowWindow.__workflowInterval = intervalId;
+      } else {
+        showSuccess("Auto-pilot mode deactivated.");
+        if (workflowWindow.__workflowInterval) {
+          clearInterval(workflowWindow.__workflowInterval);
+          workflowWindow.__workflowInterval = undefined;
+        }
       }
-    }
+      return next;
+    });
   };
 
   useEffect(() => {
-    fetchControl().catch(() => {});
+    fetchControl().catch(() => undefined);
+
     return () => {
-      if ((window as any).__workflowInterval) {
-        clearInterval((window as any).__workflowInterval);
+      const workflowWindow = window as WorkflowWindow;
+      if (workflowWindow.__workflowInterval) {
+        clearInterval(workflowWindow.__workflowInterval);
       }
     };
   }, []);
@@ -279,11 +280,16 @@ const AutomationWorkflow = () => {
 
   const handleToggleWorkflow = async () => {
     if (!control || savingControl) return;
+
     const nextMode: WorkflowMode = isPaused ? "running" : "paused";
     setSavingControl(true);
+
     const { data, error } = await supabase
       .from("workflow_controls")
-      .update({ mode: nextMode, updated_at: new Date().toISOString() })
+      .update({
+        mode: nextMode,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", control.id)
       .select()
       .single();
@@ -293,6 +299,7 @@ const AutomationWorkflow = () => {
       setSavingControl(false);
       return;
     }
+
     setControl(data as WorkflowControl);
     showSuccess(nextMode === "paused" ? "Đã tạm dừng workflow" : "Đã tiếp tục workflow");
     setSavingControl(false);
@@ -300,51 +307,56 @@ const AutomationWorkflow = () => {
 
   const runStep = async (stepId: string) => {
     const actionMap: Record<string, string> = {
-      research: 'research',
-      writer: 'write',
-      image: 'generate-image',
+      research: "research",
+      writer: "write",
+      image: "generate-image",
     };
+
     const action = actionMap[stepId];
     if (!action) return;
 
     setRunningStep(stepId);
-    // Reset research results when about to run
-    if (stepId === 'research') {
-      setResearchResults(null);
-      setResearchErrors(null);
+
+    if (stepId === "research") {
+      setResearchResults([]);
+      setResearchErrors([]);
     }
-    try {
-      const { data, error } = await supabase.functions.invoke('automation-run', {
-        body: { action },
-      });
-      if (error) throw error;
-      if (data?.success) {
-        if (action === 'research') {
-          const topics: SeoTopic[] = data.topics || [];
-          const errors: string[] = data.errors || [];
-          setResearchResults(topics);
-          setResearchErrors(errors);
-          const createdCount = topics.length;
-          const errorCount = errors.length;
-          if (errorCount > 0) {
-            showError(`Đã tạo ${createdCount} chủ đề, nhưng có ${errorCount} lỗi. Xem chi tiết trong Module Detail.`);
-          } else {
-            showSuccess(`Đã tạo ${createdCount} chủ đề SEO mới`);
-          }
-          setSelectedId('research');
-        } else {
-          showSuccess(`Bước ${stepId} đã chạy thành công!`);
-        }
-        setRefreshTrigger(prev => prev + 1);
-        setIsInitialized(prev => !prev);
-      } else {
-        showError(data?.message || 'Không thể chạy bước này.');
-      }
-    } catch (err: any) {
-      showError(err.message || 'Lỗi khi chạy automation');
-    } finally {
+
+    const { data, error } = await supabase.functions.invoke("automation-run", {
+      body: { action },
+    });
+
+    if (error) {
       setRunningStep(null);
+      showError(error.message || "Lỗi khi chạy automation");
+      return;
     }
+
+    if (!data?.success) {
+      setRunningStep(null);
+      showError(data?.message || "Không thể chạy bước này.");
+      return;
+    }
+
+    if (action === "research") {
+      const topics = (data.topics || []) as SeoTopic[];
+      const errors = (data.errors || []) as string[];
+
+      setResearchResults(topics);
+      setResearchErrors(errors);
+      setSelectedId("research");
+
+      if (errors.length > 0) {
+        showError(`Đã tạo ${topics.length} chủ đề, nhưng có ${errors.length} lỗi.`);
+      } else {
+        showSuccess(`Đã tạo ${topics.length} chủ đề SEO mới`);
+      }
+    } else {
+      showSuccess(`Bước ${stepId} đã chạy thành công!`);
+    }
+
+    setRefreshTrigger((prev) => prev + 1);
+    setRunningStep(null);
   };
 
   return (
@@ -387,7 +399,7 @@ const AutomationWorkflow = () => {
             <button
               type="button"
               onClick={runScheduler}
-              className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-600 transition"
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-500 px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-600"
             >
               <RefreshCw className="h-4 w-4" />
               Run Scheduler
@@ -408,7 +420,7 @@ const AutomationWorkflow = () => {
             <button
               type="button"
               onClick={initData}
-              className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-bold text-purple-700 hover:bg-purple-100 transition"
+              className="inline-flex items-center gap-2 rounded-full border border-purple-200 bg-purple-50 px-4 py-2.5 text-sm font-bold text-purple-700 transition hover:bg-purple-100"
             >
               Khởi tạo dữ liệu automation
             </button>
@@ -466,7 +478,7 @@ const AutomationWorkflow = () => {
                     : baseState;
                 const isSelected = selectedId === step.id;
                 const isLast = index === steps.length - 1;
-                const isRunnable = ['research', 'writer', 'image'].includes(step.id);
+                const isRunnable = ["research", "writer", "image"].includes(step.id);
                 const isRunning = runningStep === step.id;
 
                 return (
@@ -492,7 +504,7 @@ const AutomationWorkflow = () => {
                             {state.label}
                           </span>
                           {step.autoRunnable && autoMode && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-purple-50 border border-purple-200 px-2 py-1 text-[10px] font-bold text-purple-600">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-1 text-[10px] font-bold text-purple-600">
                               <Sparkles className="h-3 w-3" />
                               AUTO
                             </span>
@@ -505,10 +517,10 @@ const AutomationWorkflow = () => {
                                 runStep(step.id);
                               }}
                               disabled={isRunning}
-                              className="ml-auto flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 hover:bg-indigo-100 transition disabled:opacity-50"
+                              className="ml-auto flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-600 transition hover:bg-indigo-100 disabled:opacity-50"
                             >
                               {isRunning ? (
-                                <span className="inline-block w-3 h-3 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin mr-1" />
+                                <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-indigo-400 border-t-transparent" />
                               ) : (
                                 <PlayCircle className="h-4 w-4" />
                               )}
@@ -570,52 +582,39 @@ const AutomationWorkflow = () => {
             <selectedStep.icon className="h-7 w-7" />
           </div>
           <p className="mt-4 text-sm font-bold text-slate-900">
-            {selectedStep.id === "research" && researchResults
-              ? `${researchResults.length} topics vừa được tạo`
+            {selectedStep.id === "research" && researchResults.length > 0
+              ? `${researchResults.length} topic vừa tạo`
               : selectedStep.meta}
           </p>
         </div>
 
         <p className="mt-5 text-sm leading-7 text-slate-600">{selectedStep.desc}</p>
 
-        {/* Research results display */}
-        {selectedStep.id === "research" && researchResults && (
+        {selectedStep.id === "research" && researchResults.length > 0 && (
           <div className="mt-6 space-y-3">
-            <h4 className="text-sm font-bold text-slate-900">
-              {researchResults.length > 0 ? "Chủ đề vừa tạo" : "Không có chủ đề mới"}
-            </h4>
-            {researchResults.map((topic, idx) => (
-              <div
-                key={idx}
-                className="rounded-2xl border border-[#f3dcc8] bg-[#fff8f2] p-4"
-              >
-                <p className="font-semibold text-slate-900 text-sm">{topic.topic}</p>
-                <div className="mt-1 flex flex-wrap gap-2 text-xs text-slate-500">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
-                    🔑 {topic.keyword}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
-                    📁 {topic.category}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
-                    🎯 {topic.search_intent}
-                  </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 font-medium">
-                    ⭐ {topic.priority_score}
-                  </span>
+            <h4 className="text-sm font-bold text-slate-900">Topic vừa tìm thấy</h4>
+            {researchResults.map((topic) => (
+              <div key={topic.id} className="rounded-2xl border border-[#f3dcc8] bg-[#fff8f2] p-4">
+                <p className="text-sm font-semibold text-slate-900">{topic.topic}</p>
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">🔑 {topic.keyword}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">📁 {topic.category}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">🎯 {topic.search_intent}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">⭐ {topic.priority_score}</span>
                 </div>
               </div>
             ))}
-            {researchErrors && researchErrors.length > 0 && (
-              <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-4">
-                <h5 className="text-sm font-bold text-red-800">Lỗi khi lưu chủ đề</h5>
-                <ul className="mt-2 list-inside list-disc text-xs text-red-700">
-                  {researchErrors.map((err, idx) => (
-                    <li key={idx}>{err}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
+          </div>
+        )}
+
+        {selectedStep.id === "research" && researchErrors.length > 0 && (
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4">
+            <h4 className="text-sm font-bold text-red-800">Lỗi khi tạo topic</h4>
+            <ul className="mt-2 list-inside list-disc space-y-1 text-xs text-red-700">
+              {researchErrors.map((errorItem) => (
+                <li key={errorItem}>{errorItem}</li>
+              ))}
+            </ul>
           </div>
         )}
 
@@ -639,7 +638,7 @@ const AutomationWorkflow = () => {
           <div className="rounded-[1.5rem] bg-[#fff8f2] p-4">
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-slate-400">Success</p>
             <p className="mt-2 text-2xl font-black text-slate-900">
-              {stats.totalJobs > 0 ? Math.round(((stats.publishedJobs + stats.scheduledJobs) / (stats.totalJobs || 1)) * 100) : 0}%
+              {stats.totalJobs > 0 ? Math.round(((stats.publishedJobs + stats.scheduledJobs) / stats.totalJobs) * 100) : 0}%
             </p>
           </div>
         </div>
