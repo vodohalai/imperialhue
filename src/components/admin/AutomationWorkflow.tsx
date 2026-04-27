@@ -79,11 +79,12 @@ const AutomationWorkflow = () => {
   const [loadingControl, setLoadingControl] = useState(true);
   const [savingControl, setSavingControl] = useState(false);
   const [runningStep, setRunningStep] = useState<string | null>(null);
-  const [autoMode, setAutoMode] = useState<boolean>(false);
+  const [autoMode, setAutoMode] = useState(false);
   const [lastRun, setLastRun] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [researchResults, setResearchResults] = useState<SeoTopic[]>([]);
   const [researchErrors, setResearchErrors] = useState<string[]>([]);
+  const [researchTopics, setResearchTopics] = useState<SeoTopic[]>([]);
+  const [loadingResearchTopics, setLoadingResearchTopics] = useState(false);
   const { stats } = useAutomationStats(refreshTrigger);
 
   const steps: WorkflowStep[] = [
@@ -204,6 +205,32 @@ const AutomationWorkflow = () => {
     setLoadingControl(false);
   };
 
+  const fetchResearchTopics = async () => {
+    setLoadingResearchTopics(true);
+
+    const { data, error } = await supabase
+      .from("seo_topics")
+      .select("*")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    if (error) {
+      setLoadingResearchTopics(false);
+      showError(error.message);
+      return;
+    }
+
+    setResearchTopics((data || []) as SeoTopic[]);
+    setLoadingResearchTopics(false);
+  };
+
+  useEffect(() => {
+    if (selectedId === "research") {
+      fetchResearchTopics().catch(() => undefined);
+    }
+  }, [selectedId, refreshTrigger]);
+
   const initTable = async () => {
     setLoadingControl(true);
     try {
@@ -318,7 +345,6 @@ const AutomationWorkflow = () => {
     setRunningStep(stepId);
 
     if (stepId === "research") {
-      setResearchResults([]);
       setResearchErrors([]);
     }
 
@@ -339,17 +365,15 @@ const AutomationWorkflow = () => {
     }
 
     if (action === "research") {
-      const topics = (data.topics || []) as SeoTopic[];
       const errors = (data.errors || []) as string[];
-
-      setResearchResults(topics);
       setResearchErrors(errors);
       setSelectedId("research");
+      await fetchResearchTopics();
 
       if (errors.length > 0) {
-        showError(`Đã tạo ${topics.length} chủ đề, nhưng có ${errors.length} lỗi.`);
+        showError(`Đã tạo topic nhưng có ${errors.length} lỗi.`);
       } else {
-        showSuccess(`Đã tạo ${topics.length} chủ đề SEO mới`);
+        showSuccess(`Đã tạo ${data.topics?.length || 0} chủ đề SEO mới`);
       }
     } else {
       showSuccess(`Bước ${stepId} đã chạy thành công!`);
@@ -582,28 +606,39 @@ const AutomationWorkflow = () => {
             <selectedStep.icon className="h-7 w-7" />
           </div>
           <p className="mt-4 text-sm font-bold text-slate-900">
-            {selectedStep.id === "research" && researchResults.length > 0
-              ? `${researchResults.length} topic vừa tạo`
+            {selectedStep.id === "research" && researchTopics.length > 0
+              ? `${researchTopics.length} topic pending trong hệ thống`
               : selectedStep.meta}
           </p>
         </div>
 
         <p className="mt-5 text-sm leading-7 text-slate-600">{selectedStep.desc}</p>
 
-        {selectedStep.id === "research" && researchResults.length > 0 && (
+        {selectedStep.id === "research" && (
           <div className="mt-6 space-y-3">
-            <h4 className="text-sm font-bold text-slate-900">Topic vừa tìm thấy</h4>
-            {researchResults.map((topic) => (
-              <div key={topic.id} className="rounded-2xl border border-[#f3dcc8] bg-[#fff8f2] p-4">
-                <p className="text-sm font-semibold text-slate-900">{topic.topic}</p>
-                <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
-                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">🔑 {topic.keyword}</span>
-                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">📁 {topic.category}</span>
-                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">🎯 {topic.search_intent}</span>
-                  <span className="rounded-full bg-white px-2.5 py-1 font-medium">⭐ {topic.priority_score}</span>
-                </div>
+            <h4 className="text-sm font-bold text-slate-900">Danh sách topic pending</h4>
+
+            {loadingResearchTopics ? (
+              <div className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
+                Đang tải topic từ Supabase...
               </div>
-            ))}
+            ) : researchTopics.length === 0 ? (
+              <div className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
+                Chưa có topic pending nào để hiển thị.
+              </div>
+            ) : (
+              researchTopics.map((topic) => (
+                <div key={topic.id} className="rounded-2xl border border-[#f3dcc8] bg-[#fff8f2] p-4">
+                  <p className="text-sm font-semibold text-slate-900">{topic.topic}</p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                    <span className="rounded-full bg-white px-2.5 py-1 font-medium">🔑 {topic.keyword}</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 font-medium">📁 {topic.category}</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 font-medium">🎯 {topic.search_intent}</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 font-medium">⭐ {topic.priority_score}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         )}
 
