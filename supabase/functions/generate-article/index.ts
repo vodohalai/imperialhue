@@ -1,5 +1,6 @@
 // @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { requireAdmin } from "../shared/auth.ts"
 
 declare const Deno: any;
 
@@ -9,13 +10,21 @@ const corsHeaders = {
 }
 
 serve(async (req: Request) => {
-  console.log("[generate-article] Received request", { method: req.method });
-  
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
+    try {
+      await requireAdmin(req)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ""
+      const status = message === "forbidden" ? 403 : 401
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
     const { prompt, lang = 'vi' } = await req.json()
     const apiKey = Deno.env.get('OPENAI_API_KEY')
 
@@ -26,8 +35,6 @@ serve(async (req: Request) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    console.log("[generate-article] Calling OpenAI API...", { prompt });
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',

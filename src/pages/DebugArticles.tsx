@@ -17,7 +17,6 @@ const DebugArticles = () => {
 
   const fetchArticles = async () => {
     try {
-      console.log("🔍 Fetching all articles...");
       const { data, error } = await supabase
         .from("articles")
         .select("*")
@@ -28,7 +27,6 @@ const DebugArticles = () => {
         return;
       }
       
-      console.log("✅ Articles found:", data);
       setArticles(data || []);
     } catch (err: any) {
       console.error("💥 Fetch error:", err);

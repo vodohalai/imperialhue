@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
 import * as postgres from "https://deno.land/x/postgres@v0.19.1/mod.ts"
+import { requireAdmin } from "../shared/auth.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +17,16 @@ serve(async (req) => {
   }
 
   try {
+    try {
+      await requireAdmin(req)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ""
+      const status = message === "forbidden" ? 403 : 401
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
     const connection = await pool.connect()
 
     try {

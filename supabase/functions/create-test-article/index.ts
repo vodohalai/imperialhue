@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { requireAdmin } from "../shared/auth.ts"
+import { supabaseAdmin } from "../shared/supabase-client.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -11,8 +13,17 @@ serve(async (req) => {
   }
 
   try {
-    const { supabase } = await import('../shared/supabase-client.ts')
-    
+    try {
+      await requireAdmin(req)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ""
+      const status = message === "forbidden" ? 403 : 401
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
     const articleData = {
       slug: 'danh-muc-hue',
       title: 'Khám phá danh mục Huế',
@@ -24,7 +35,7 @@ serve(async (req) => {
       image_url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80'
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('articles')
       .insert([articleData])
       .select()
@@ -38,7 +49,6 @@ serve(async (req) => {
       })
     }
 
-    console.log("[create-test-article] Article created:", data)
     return new Response(JSON.stringify({ success: true, article: data }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })

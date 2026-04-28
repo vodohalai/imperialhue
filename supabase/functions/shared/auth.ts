@@ -1,0 +1,28 @@
+import type { User } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { supabaseAdmin } from "./supabase-client.ts";
+
+export function getBearerToken(req: Request): string | null {
+  const header = req.headers.get("authorization") || req.headers.get("Authorization") || "";
+  if (!header.startsWith("Bearer ")) return null;
+  const token = header.slice("Bearer ".length).trim();
+  return token.length ? token : null;
+}
+
+export async function requireAdmin(req: Request): Promise<User> {
+  const token = getBearerToken(req);
+  if (!token) {
+    throw new Error("missing_token");
+  }
+
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  if (error || !data?.user) {
+    throw new Error("invalid_token");
+  }
+
+  const role = (data.user.app_metadata as any)?.role;
+  if (role !== "admin") {
+    throw new Error("forbidden");
+  }
+
+  return data.user;
+}

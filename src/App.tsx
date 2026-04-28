@@ -6,20 +6,22 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { LanguageProvider } from "@/i18n/LanguageContext";
 import { BehavioralIntelligence } from "@/components/BehavioralIntelligence";
 import { useEffect, useState, Suspense, lazy } from "react";
+import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { isAdminSession } from "@/security/admin";
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import Rooms from "./pages/Rooms";
-import RoomDetail from "./pages/RoomDetail";
-import Offers from "./pages/Offers";
-import Contact from "./pages/Contact";
-import About from "./pages/About";
-import Amenities from "./pages/Amenities";
-import Availability from "./pages/Availability";
-import Booking from "./pages/Booking";
 
+const Rooms = lazy(() => import("./pages/Rooms"));
+const RoomDetail = lazy(() => import("./pages/RoomDetail"));
+const Offers = lazy(() => import("./pages/Offers"));
+const Contact = lazy(() => import("./pages/Contact"));
+const About = lazy(() => import("./pages/About"));
+const Amenities = lazy(() => import("./pages/Amenities"));
+const Availability = lazy(() => import("./pages/Availability"));
+const Booking = lazy(() => import("./pages/Booking"));
 const Explore = lazy(() => import("./pages/Explore"));
 const ExploreDetail = lazy(() => import("./pages/ExploreDetail"));
 const DebugArticles = lazy(() => import("./pages/DebugArticles"));
@@ -31,7 +33,7 @@ const AdminAutomation = lazy(() => import("./pages/admin/Automation"));
 const queryClient = new QueryClient();
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const [session, setSession] = useState<any>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -48,7 +50,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   if (loading) return null;
-  if (!session) return <Navigate to="/admin/login" />;
+  if (!session || !isAdminSession(session)) return <Navigate to="/admin/login" />;
   return <>{children}</>;
 };
 
@@ -74,17 +76,17 @@ const App = () => {
             {!isMobile && <BehavioralIntelligence />}
             <Routes>
               <Route path="/" element={<Index />} />
-              <Route path="/rooms" element={<Rooms />} />
-              <Route path="/rooms/:slug" element={<RoomDetail />} />
-              <Route path="/availability" element={<Availability />} />
-              <Route path="/booking/:slug" element={<Booking />} />
-              <Route path="/offers" element={<Offers />} />
-              <Route path="/contact" element={<Contact />} />
+              <Route path="/rooms" element={<Suspense fallback={<LoadingFallback />}><Rooms /></Suspense>} />
+              <Route path="/rooms/:slug" element={<Suspense fallback={<LoadingFallback />}><RoomDetail /></Suspense>} />
+              <Route path="/availability" element={<Suspense fallback={<LoadingFallback />}><Availability /></Suspense>} />
+              <Route path="/booking/:slug" element={<Suspense fallback={<LoadingFallback />}><Booking /></Suspense>} />
+              <Route path="/offers" element={<Suspense fallback={<LoadingFallback />}><Offers /></Suspense>} />
+              <Route path="/contact" element={<Suspense fallback={<LoadingFallback />}><Contact /></Suspense>} />
               <Route path="/explore" element={<Suspense fallback={<LoadingFallback />}><Explore /></Suspense>} />
               <Route path="/explore/:slug" element={<Suspense fallback={<LoadingFallback />}><ExploreDetail /></Suspense>} />
-              <Route path="/about" element={<About />} />
-              <Route path="/amenities" element={<Amenities />} />
-              <Route path="/debug-articles" element={<Suspense fallback={<LoadingFallback />}><DebugArticles /></Suspense>} />
+              <Route path="/about" element={<Suspense fallback={<LoadingFallback />}><About /></Suspense>} />
+              <Route path="/amenities" element={<Suspense fallback={<LoadingFallback />}><Amenities /></Suspense>} />
+              <Route path="/debug-articles" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><DebugArticles /></Suspense></ProtectedRoute>} />
 
               <Route path="/admin/login" element={<Suspense fallback={<LoadingFallback />}><AdminLogin /></Suspense>} />
               <Route path="/admin" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminDashboard /></Suspense></ProtectedRoute>} />

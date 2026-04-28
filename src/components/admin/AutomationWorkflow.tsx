@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
 import type { Article, WorkflowControl, WorkflowMode, SeoTopic, AiContentJob } from "@/integrations/supabase/types";
 import { useAutomationStats } from "@/hooks/useAutomationStats";
+import { sanitizeHtml } from "@/security/sanitizeHtml";
 
 type WorkflowStatus = "ready" | "running" | "waiting" | "done";
 
@@ -117,6 +118,8 @@ const AutomationWorkflow = () => {
   const [loadingImagePreview, setLoadingImagePreview] = useState(false);
   const [scheduleTime, setScheduleTime] = useState("06:00");
   const { stats } = useAutomationStats(refreshTrigger);
+
+  const safeReviewContent = useMemo(() => sanitizeHtml(reviewItem?.article?.content || ""), [reviewItem?.article?.content]);
 
   const steps: WorkflowStep[] = [
     {
@@ -1031,7 +1034,7 @@ const AutomationWorkflow = () => {
                   <p className="mb-3 text-sm font-bold text-slate-900">Xem nhanh nội dung</p>
                   <div
                     className="max-h-72 overflow-auto prose prose-sm max-w-none prose-h2:mb-5 prose-h2:mt-10 prose-h2:border-l-4 prose-h2:border-[#0D9488] prose-h2:pl-4 prose-h2:text-2xl prose-h2:font-black prose-h2:text-slate-900 prose-h3:mb-4 prose-h3:mt-8 prose-h3:text-xl prose-h3:font-extrabold prose-h3:text-[#0D9488] prose-p:mb-6 prose-p:text-base prose-p:leading-8 prose-p:text-slate-600 prose-ul:mb-6 prose-ul:list-disc prose-ul:pl-6 prose-li:mb-2 prose-li:text-slate-600"
-                    dangerouslySetInnerHTML={{ __html: reviewItem.article.content }}
+                    dangerouslySetInnerHTML={{ __html: safeReviewContent }}
                   />
                 </div>
 

@@ -1,15 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Calendar, Share2, Sparkles } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteBottomNav from "@/components/SiteBottomNav";
 import { supabase } from "@/integrations/supabase/client";
 import type { Article } from "@/integrations/supabase/types";
+import { sanitizeHtml } from "@/security/sanitizeHtml";
 
 const ExploreDetail = () => {
   const { slug } = useParams();
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
+  const safeContent = useMemo(() => sanitizeHtml(article?.content || ""), [article?.content]);
 
   useEffect(() => {
     const fetchArticle = async () => {
@@ -116,7 +118,7 @@ const ExploreDetail = () => {
 
               <div
                 className="prose prose-slate max-w-none prose-h2:mb-5 prose-h2:mt-10 prose-h2:text-2xl prose-h2:font-black prose-h2:text-slate-900 prose-p:mb-6 prose-p:text-lg prose-p:leading-8 prose-p:text-slate-600 prose-ul:mb-6 prose-ul:list-disc prose-ul:pl-6 prose-li:mb-2 prose-li:text-slate-600"
-                dangerouslySetInnerHTML={{ __html: article.content }}
+                dangerouslySetInnerHTML={{ __html: safeContent }}
               />
 
               <div className="mt-16 flex flex-col items-center justify-between gap-6 border-t border-[#ece6dd] pt-10 md:flex-row">
