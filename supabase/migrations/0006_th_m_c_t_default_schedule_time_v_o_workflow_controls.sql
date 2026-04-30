@@ -1,0 +1,1 @@
+ALTER TABLE public.workflow_controls ADD COLUMN IF NOT EXISTS default_schedule_time text NOT NULL DEFAULT '06:00'
