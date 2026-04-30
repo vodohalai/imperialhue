@@ -52,6 +52,7 @@ export interface WorkflowControl {
   workflow_key: string;
   mode: WorkflowMode;
   default_schedule_time?: string | null;
+  auto_publish?: boolean; // ← thêm dòng này
   updated_at: string;
 }
 

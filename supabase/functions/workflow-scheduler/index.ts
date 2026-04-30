@@ -21,9 +21,14 @@ async function writeLog(supabaseAdmin, action, status, message, details = null, 
   }])
 }
 
-async function invokeAutomationAction(action: string, serviceRoleKey: string): Promise<{ success: boolean; data: any }> {
+async function invokeAutomationAction(
+  action: string,
+  serviceRoleKey: string,
+  extraBody: Record<string, unknown> = {}
+): Promise<{ success: boolean; data: any }> {
   const actionStart = Date.now()
-  console.log(`[workflow-scheduler] Invoking automation-run action="${action}"`)
+  const body = { action, ...extraBody }
+  console.log(`[workflow-scheduler] Invoking automation-run action="${action}"`, { extraKeys: Object.keys(extraBody) })
 
   try {
     const response = await fetch(AUTOMATION_RUN_URL, {
@@ -32,7 +37,7 @@ async function invokeAutomationAction(action: string, serviceRoleKey: string): P
         "Content-Type": "application/json",
         Authorization: `Bearer ${serviceRoleKey}`,
       },
-      body: JSON.stringify({ action }),
+      body: JSON.stringify(body),
     })
 
     const data = await response.json()
@@ -75,9 +80,11 @@ serve(async (req) => {
 
     const { data: control } = await supabaseAdmin
       .from('workflow_controls')
-      .select('mode')
+      .select('mode, auto_publish')
       .eq('workflow_key', WORKFLOW_KEY)
       .single()
+
+    const autoPublish = control?.auto_publish === true
 
     if (control?.mode === 'paused') {
       console.log("[workflow-scheduler] Workflow is paused. Skipping.")
@@ -159,7 +166,6 @@ serve(async (req) => {
     const successCount = totalJobs - failedCount.value
 
     if (totalJobs > 0) {
-      // ── Có bài đến hạn → xuất bản như bình thường ────────────
       if (failedCount.value === 0) {
         await writeLog(supabaseAdmin, "scheduler", "success", `Đã xuất bản ${successCount} bài`, { published: results, total: totalJobs, checked_at: nowIso }, durationMs)
       } else {
@@ -176,8 +182,9 @@ serve(async (req) => {
       })
     }
 
-    // ── Không có bài đến hạn → chạy pipeline từ đầu ──────────
+    // ─── Không có bài đến hạn → chạy pipeline từ đầu ──────────
     console.log("[workflow-scheduler] No due jobs. Starting full pipeline: research → write → generate-image")
+    console.log("[workflow-scheduler] auto_publish =", autoPublish)
     await writeLog(supabaseAdmin, "scheduler", "success", "Không có bài đến hạn — bắt đầu pipeline tự động", null, Date.now() - startTime)
 
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -192,10 +199,16 @@ serve(async (req) => {
       pipelineErrors.push(`Research thất bại: ${researchResult.data?.message || researchResult.data?.error || "unknown"}`)
     }
 
-    // Step 2: Write
-    const writeResult = await invokeAutomationAction("write", serviceRoleKey)
+    // Step 2: Write (kèm auto_publish)
+    const writeExtra: Record<string, unknown> = {}
+    if (autoPublish) {
+      writeExtra.auto_publish = true
+    }
+
+    const writeResult = await invokeAutomationAction("write", serviceRoleKey, writeExtra)
     if (writeResult.success) {
-      pipelineResults.push(`Write: đã viết bài "${writeResult.data.article?.title || "không tên"}"`)
+      const statusLabel = autoPublish ? "đã đăng" : "đã viết nháp"
+      pipelineResults.push(`Write: ${statusLabel} bài "${writeResult.data.article?.title || "không tên"}"`)
     } else {
       pipelineErrors.push(`Write thất bại: ${writeResult.data?.message || writeResult.data?.error || "unknown"}`)
     }
@@ -211,7 +224,7 @@ serve(async (req) => {
     const pipelineDurationMs = Date.now() - startTime
     await writeLog(supabaseAdmin, "scheduler", pipelineErrors.length === 0 ? "success" : "success",
       `Pipeline hoàn tất: ${pipelineResults.length}/${pipelineResults.length + pipelineErrors.length} bước thành công`,
-      { pipeline_results: pipelineResults, pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined },
+      { pipeline_results: pipelineResults, pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined, auto_publish: autoPublish },
       pipelineDurationMs
     )
 
@@ -220,6 +233,7 @@ serve(async (req) => {
       mode: "pipeline",
       pipeline_results: pipelineResults,
       pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined,
+      auto_publish: autoPublish,
       timestamp: nowIso,
       duration_ms: pipelineDurationMs,
     }), {

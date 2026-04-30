@@ -34,6 +34,13 @@ serve(async (req) => {
         ADD COLUMN IF NOT EXISTS default_schedule_time text NOT NULL DEFAULT '06:00'
       `)
 
+      // ───── THÊM CỘT auto_publish ─────
+      await connection.queryObject(`
+        ALTER TABLE public.workflow_controls
+        ADD COLUMN IF NOT EXISTS auto_publish boolean NOT NULL DEFAULT false
+      `)
+      // ──────────────────────────────────
+
       await connection.queryObject(`ALTER TABLE public.workflow_controls ENABLE ROW LEVEL SECURITY`)
 
       await connection.queryObject(`

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Bot,
   CalendarClock,
@@ -68,6 +68,40 @@ const AutomationWorkflow = () => {
   const [logsCollapsed, setLogsCollapsed] = useState(true);
   const { stats, lastActivity } = useAutomationStats(refreshTrigger);
 
+  // ── Đồng bộ auto_publish lên DB khi toggle ─────────────────
+  const syncAutoPublishToDb = useCallback(async (enabled: boolean) => {
+    if (!control) return;
+    try {
+      const { error } = await supabase
+        .from("workflow_controls")
+        .update({ auto_publish: enabled, updated_at: new Date().toISOString() })
+        .eq("id", control.id);
+      if (error) {
+        showError("Không thể cập nhật auto-publish: " + error.message);
+      }
+    } catch (err: any) {
+      showError(err.message);
+    }
+  }, [control]);
+
+  // Khi autoMode thay đổi, lưu localStorage và đồng bộ DB
+  const handleToggleAutoMode = (newValue: boolean) => {
+    setAutoMode(newValue);
+    localStorage.setItem(AUTO_PILOT_STORAGE_KEY, String(newValue));
+    syncAutoPublishToDb(newValue);
+  };
+
+  // ── Lấy trạng thái từ DB khi load, ghi đè localStorage nếu có ──
+  useEffect(() => {
+    if (control) {
+      const dbAutoPublish = control.auto_publish === true;
+      if (dbAutoPublish !== autoMode) {
+        setAutoMode(dbAutoPublish);
+        localStorage.setItem(AUTO_PILOT_STORAGE_KEY, String(dbAutoPublish));
+      }
+    }
+  }, [control]);
+
   const fetchControl = async () => {
     setLoadingControl(true);
     const { data, error } = await supabase
@@ -89,7 +123,7 @@ const AutomationWorkflow = () => {
     } else {
       const { data: inserted, error: insertError } = await supabase
         .from("workflow_controls")
-        .insert([{ workflow_key: WORKFLOW_KEY, mode: "running", default_schedule_time: "06:00" }])
+        .insert([{ workflow_key: WORKFLOW_KEY, mode: "running", default_schedule_time: "06:00", auto_publish: false }])
         .select()
         .single();
 
@@ -327,10 +361,10 @@ const AutomationWorkflow = () => {
     setSavingControl(false);
   };
 
-  const invokeAutomation = async (action: "research" | "write" | "generate-image") => {
-    const { data, error } = await supabase.functions.invoke("automation-run", {
-      body: { action },
-    });
+  // Hàm invokeAutomation dùng chung, truyền auto_publish vào body
+  const invokeAutomation = async (action: "research" | "write" | "generate-image", extra: Record<string, unknown> = {}) => {
+    const body = { action, ...extra };
+    const { data, error } = await supabase.functions.invoke("automation-run", { body });
 
     if (error) {
       throw new Error(error.message || "Lỗi khi chạy automation");
@@ -359,9 +393,12 @@ const AutomationWorkflow = () => {
   const handleCreateDraft = async () => {
     setRunningAction("full");
     try {
-      await invokeAutomation("write");
+      // Gửi kèm auto_publish flag
+      await invokeAutomation("write", { auto_publish: autoMode });
       await invokeAutomation("generate-image");
-      showSuccess("Đã tạo bài viết từ dữ liệu nghiên cứu và thêm ảnh bìa");
+      showSuccess(autoMode ? "Đã tạo bài và ảnh, bài đã được tự động đăng" : "Đã tạo bài viết từ dữ liệu nghiên cứu và thêm ảnh bìa");
+
+      // Nếu auto-publish bật, bài đã được publish ngay trong automation-run => refresh
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       showError(err.message || "Không thể tạo bài và ảnh");
@@ -496,7 +533,7 @@ const AutomationWorkflow = () => {
 
             <button
               type="button"
-              onClick={() => setAutoMode((prev) => !prev)}
+              onClick={() => handleToggleAutoMode(!autoMode)}
               className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition ${
                 autoMode
                   ? "bg-[#0D9488] text-white shadow-lg shadow-teal-100"
@@ -605,9 +642,12 @@ const AutomationWorkflow = () => {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f0fdfa] text-[#0D9488]">
             <Wand2 className="h-6 w-6" />
           </div>
-          <h3 className="mt-4 text-lg font-black text-slate-900">Tạo bài + ảnh</h3>
+          <h3 className="mt-4 text-lg font-black text-slate-900">
+            {autoMode ? "Tạo bài + ảnh (tự động đăng)" : "Tạo bài + ảnh"}
+          </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
             AI lấy chính dữ liệu nghiên cứu đã lưu để viết bài cập nhật hơn rồi tạo ảnh bìa.
+            {autoMode && " Bài sẽ được tự động xuất bản ngay sau khi tạo."}
           </p>
           <p className="mt-4 text-sm font-semibold text-slate-500">{stats.draftsCreated} bài AI hiện có</p>
           <button
@@ -625,23 +665,30 @@ const AutomationWorkflow = () => {
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#f5f7ff] text-[#2563eb]">
             <Send className="h-6 w-6" />
           </div>
-          <h3 className="mt-4 text-lg font-black text-slate-900">Duyệt & lên lịch</h3>
+          <h3 className="mt-4 text-lg font-black text-slate-900">
+            {autoMode ? "Tự động đăng bài" : "Duyệt & lên lịch"}
+          </h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Duyệt bài đang chờ và gắn giờ đăng mặc định chỉ với một lần bấm.
+            {autoMode
+              ? "Khi Auto-pilot bật, bài mới tạo sẽ được đăng thẳng mà không cần duyệt."
+              : "Duyệt bài đang chờ và gắn giờ đăng mặc định chỉ với một lần bấm."}
           </p>
-          <p className="mt-4 text-sm font-semibold text-slate-500">Đăng mặc định lúc {scheduleTime}</p>
+          <p className="mt-4 text-sm font-semibold text-slate-500">
+            {autoMode ? "Bài sẽ tự động được đăng" : `Đăng mặc định lúc ${scheduleTime}`}
+          </p>
           <button
             type="button"
             onClick={handleApprove}
-            disabled={!reviewItem?.article || approving}
+            disabled={!reviewItem?.article || approving || autoMode}
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#2563eb] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#1d4ed8] disabled:opacity-60"
           >
             {approving ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" /> : <CheckCircle2 className="h-4 w-4" />}
-            Duyệt bài chờ
+            {autoMode ? "Đã bật tự động" : "Duyệt bài chờ"}
           </button>
         </div>
       </section>
 
+      {/* ... phần còn lại giữ nguyên (topics, bài chờ duyệt, lịch sử) ... */}
       <section className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-5 shadow-sm">
           <button
@@ -692,7 +739,7 @@ const AutomationWorkflow = () => {
         <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-5 shadow-sm">
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-base font-black text-slate-900">Bài chờ duyệt</h3>
-            {reviewItem?.article && (
+            {reviewItem?.article && !autoMode && (
               <div className="flex gap-2">
                 <a
                   href={`/admin/preview/${reviewItem.article.id}`}
@@ -720,7 +767,9 @@ const AutomationWorkflow = () => {
             {loadingQueues ? (
               <p className="text-sm text-slate-500">Đang tải...</p>
             ) : !reviewItem?.article ? (
-              <p className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">Chưa có bài nào sẵn sàng để duyệt.</p>
+              <p className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">
+                {autoMode ? "Bài mới sẽ được tự động đăng khi Auto-pilot bật." : "Chưa có bài nào sẵn sàng để duyệt."}
+              </p>
             ) : (
               <div className="overflow-hidden rounded-[1.5rem] border border-[#ece6dd]">
                 {reviewItem.article.image_url && (

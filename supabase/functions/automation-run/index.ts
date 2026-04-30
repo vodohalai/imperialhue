@@ -139,7 +139,7 @@ serve(async (req) => {
     const body = await req.json().catch(() => ({}))
     const action = body?.action
 
-    console.log("[automation-run] Incoming request", { action })
+    console.log("[automation-run] Incoming request", { action, auto_publish: body?.auto_publish })
 
     if (!action || !["write", "generate-image", "research"].includes(action)) {
       console.error("[automation-run] Invalid action received", { action })
@@ -333,6 +333,7 @@ serve(async (req) => {
     // ─── WRITE ───────────────────────────────────────────────────
     if (action === "write") {
       const actionStart = Date.now()
+      const autoPublish = body?.auto_publish === true
 
       if (!deepseekKey) {
         console.error("[automation-run] Missing DEEPSEEK_API_KEY for write")
@@ -374,6 +375,7 @@ serve(async (req) => {
         topicId: topic.id,
         topic: topic.topic,
         keyword: topic.keyword,
+        autoPublish,
       })
 
       const categoryHint = topic.category || "Du lịch"
@@ -464,13 +466,18 @@ LƯU Ý QUAN TRỌNG:
         )
       }
 
+      // Xác định trạng thái ban đầu dựa trên auto_publish flag
+      const initialStatus = autoPublish ? "published" : "draft"
+      const publishedAt = autoPublish ? new Date().toISOString() : null
+
       const { data: job, error: insertJobError } = await supabaseAdmin
         .from("ai_content_jobs")
         .insert([
           {
             topic_id: topic.id,
             title: generated.title,
-            status: "draft_ai",
+            status: autoPublish ? "published" : "draft_ai",
+            published_at: publishedAt,
           },
         ])
         .select()
@@ -496,7 +503,8 @@ LƯU Ý QUAN TRỌNG:
             content: generated.content,
             excerpt: generated.excerpt || "",
             category: generated.category || "Du lịch",
-            status: "draft",
+            status: initialStatus,
+            published_at: publishedAt,
             image_url: "",
           },
         ])
@@ -516,6 +524,7 @@ LƯU Ý QUAN TRỌNG:
         articleId: article.id,
         slug: article.slug,
         title: article.title,
+        status: article.status,
       })
 
       const { error: linkError } = await supabaseAdmin
@@ -547,14 +556,15 @@ LƯU Ý QUAN TRỌNG:
       }
 
       const durationMs = Date.now() - actionStart
+      const statusVerb = autoPublish ? "đã đăng" : "đã lưu nháp"
       await writeLog(supabaseAdmin, "write", "success",
-        `Đã viết bài "${generated.title}"`,
-        { articleId: article.id, slug: article.slug, topicId: topic.id, topic: topic.topic },
+        `Đã viết và ${statusVerb} bài "${generated.title}"`,
+        { articleId: article.id, slug: article.slug, topicId: topic.id, topic: topic.topic, auto_publish: autoPublish },
         durationMs
       )
 
       return new Response(
-        JSON.stringify({ success: true, job, article, duration_ms: durationMs }),
+        JSON.stringify({ success: true, job, article, auto_published: autoPublish, duration_ms: durationMs }),
         { headers: jsonHeaders },
       )
     }
@@ -657,11 +667,7 @@ LƯU Ý QUAN TRỌNG:
 
       // ── Fallback to Unsplash ──────────────────────────────────
       if (!imageUrl && unsplashAccessKey) {
-        // Build a simple English query — Unsplash works best with 1-3 broad keywords
-        const simpleQuery = job.article_id
-          ? `Hue Vietnam`
-          : "Hue Vietnam travel"
-
+        const simpleQuery = "Hue Vietnam travel"
         console.log("[automation-run] Trying Unsplash fallback", { query: simpleQuery })
         imageUrl = await searchUnsplash(unsplashAccessKey, simpleQuery)
 
