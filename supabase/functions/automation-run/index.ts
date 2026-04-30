@@ -50,49 +50,67 @@ const fetchSearchResults = async (apiKey: string, query: string) => {
   return data
 }
 
+const CATEGORY_UNSPLASH_MAP: Record<string, string[]> = {
+  "Ẩm thực": ["Hue food cuisine", "Vietnamese food", "Hue street food"],
+  "Di tích": ["Hue imperial citadel", "Hue heritage", "Vietnamese ancient architecture"],
+  "Lịch trình": ["Hue Vietnam travel", "Hue landscape", "Vietnam tourism"],
+  "Văn hóa": ["Hue culture tradition", "Vietnamese culture", "Hue festival"],
+  "Kinh nghiệm": ["Hue Vietnam travel", "Hue tourism", "Vietnam travel tips"],
+  "Du lịch": ["Hue Vietnam travel", "Hue nature landscape", "Vietnam tourism destination"],
+}
+
 async function searchUnsplash(accessKey: string, query: string): Promise<string | null> {
-  try {
-    const keywords = query
+  // Try the provided query first, then fall back to simpler queries
+  const queriesToTry = [query, "Hue Vietnam travel", "Hue Vietnam landscape", "Vietnam travel"]
+
+  for (const q of queriesToTry) {
+    const keywords = q
       ?.replace(/[\u201c\u201d""]/g, "")
       ?.replace(/[^a-zA-Z0-9\u00C0-\u1EF9\s]/g, " ")
       ?.trim()
       || "Hue Vietnam travel"
 
-    const response = await fetch(
-      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=3&orientation=landscape`,
-      {
-        headers: { Authorization: `Client-ID ${accessKey}` },
-      },
-    )
+    if (!keywords) continue
 
-    if (!response.ok) {
-      console.error("[automation-run] Unsplash search failed", { status: response.status })
-      return null
+    try {
+      const response = await fetch(
+        `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=3&orientation=landscape`,
+        {
+          headers: { Authorization: `Client-ID ${accessKey}` },
+        },
+      )
+
+      if (!response.ok) {
+        console.error("[automation-run] Unsplash search failed", { status: response.status, query: keywords })
+        continue
+      }
+
+      const data = await response.json()
+      const results = data?.results || []
+
+      if (results.length === 0) {
+        console.warn("[automation-run] Unsplash returned no results for query:", keywords)
+        continue
+      }
+
+      const imageUrl = results[0]?.urls?.regular || null
+
+      if (imageUrl) {
+        console.log("[automation-run] Unsplash image found", {
+          query: keywords,
+          url: imageUrl,
+          photographer: results[0]?.user?.name,
+        })
+        return imageUrl
+      }
+    } catch (error) {
+      console.error("[automation-run] Unsplash search error:", error.message, { query: keywords })
+      // continue to next fallback
     }
-
-    const data = await response.json()
-    const results = data?.results || []
-
-    if (results.length === 0) {
-      console.warn("[automation-run] Unsplash returned no results for query:", keywords)
-      return null
-    }
-
-    const imageUrl = results[0]?.urls?.regular || null
-
-    if (imageUrl) {
-      console.log("[automation-run] Unsplash image found", {
-        query: keywords,
-        url: imageUrl,
-        photographer: results[0]?.user?.name,
-      })
-    }
-
-    return imageUrl
-  } catch (error) {
-    console.error("[automation-run] Unsplash search error:", error.message)
-    return null
   }
+
+  console.error("[automation-run] All Unsplash queries exhausted with no results")
+  return null
 }
 
 async function writeLog(supabaseAdmin, action, status, message, details = null, durationMs = null) {
@@ -594,12 +612,13 @@ LƯU Ý QUAN TRỌNG:
 
       // ── Fallback to Unsplash ──────────────────────────────────
       if (!imageUrl && unsplashAccessKey) {
-        const searchQuery = job.title
-          ? `${job.title} Hue Vietnam travel`
-          : "Hue Vietnam travel landscape"
+        // Build a simple English query — Unsplash works best with 1-3 broad keywords
+        const simpleQuery = job.article_id
+          ? `Hue Vietnam`
+          : "Hue Vietnam travel"
 
-        console.log("[automation-run] Trying Unsplash fallback", { query: searchQuery })
-        imageUrl = await searchUnsplash(unsplashAccessKey, searchQuery)
+        console.log("[automation-run] Trying Unsplash fallback", { query: simpleQuery })
+        imageUrl = await searchUnsplash(unsplashAccessKey, simpleQuery)
 
         if (imageUrl) {
           imageSource = "unsplash"
