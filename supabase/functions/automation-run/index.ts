@@ -50,6 +50,51 @@ const fetchSearchResults = async (apiKey: string, query: string) => {
   return data
 }
 
+async function searchUnsplash(accessKey: string, query: string): Promise<string | null> {
+  try {
+    const keywords = query
+      ?.replace(/[\u201c\u201d""]/g, "")
+      ?.replace(/[^a-zA-Z0-9\u00C0-\u1EF9\s]/g, " ")
+      ?.trim()
+      || "Hue Vietnam travel"
+
+    const response = await fetch(
+      `https://api.unsplash.com/search/photos?query=${encodeURIComponent(keywords)}&per_page=3&orientation=landscape`,
+      {
+        headers: { Authorization: `Client-ID ${accessKey}` },
+      },
+    )
+
+    if (!response.ok) {
+      console.error("[automation-run] Unsplash search failed", { status: response.status })
+      return null
+    }
+
+    const data = await response.json()
+    const results = data?.results || []
+
+    if (results.length === 0) {
+      console.warn("[automation-run] Unsplash returned no results for query:", keywords)
+      return null
+    }
+
+    const imageUrl = results[0]?.urls?.regular || null
+
+    if (imageUrl) {
+      console.log("[automation-run] Unsplash image found", {
+        query: keywords,
+        url: imageUrl,
+        photographer: results[0]?.user?.name,
+      })
+    }
+
+    return imageUrl
+  } catch (error) {
+    console.error("[automation-run] Unsplash search error:", error.message)
+    return null
+  }
+}
+
 async function writeLog(supabaseAdmin, action, status, message, details = null, durationMs = null) {
   try {
     await supabaseAdmin.from("workflow_logs").insert([{
@@ -479,64 +524,87 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
         articleId: job.article_id,
       })
 
-      if (!openaiKey) {
-        console.error("[automation-run] Missing OPENAI_API_KEY for generate-image")
-        await writeLog(supabaseAdmin, "generate-image", "failed", "Thiếu OPENAI_API_KEY", null, Date.now() - actionStart)
+      const unsplashAccessKey = Deno.env.get("UNSPLASH_ACCESS_KEY")
+
+      if (!openaiKey && !unsplashAccessKey) {
+        console.error("[automation-run] Missing both OPENAI_API_KEY and UNSPLASH_ACCESS_KEY for generate-image")
+        await writeLog(supabaseAdmin, "generate-image", "failed", "Thiếu cả OPENAI_API_KEY và UNSPLASH_ACCESS_KEY", null, Date.now() - actionStart)
         return new Response(
-          JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
+          JSON.stringify({ success: false, message: "Missing both OPENAI_API_KEY and UNSPLASH_ACCESS_KEY" }),
           { status: 500, headers: jsonHeaders },
         )
       }
 
-      const imagePrompt = job.title
-        ? `A beautiful, professional cover photo for a travel blog article titled "${job.title}" about Hue, Vietnam. Cinematic, warm lighting, 16:9, no text.`
-        : "Imperial Hue boutique hotel, luxury room, cinematic style"
+      let imageUrl: string | null = null
+      let imageSource: string = "unknown"
 
-      console.log("[automation-run] Sending image prompt", { imagePrompt })
+      // ── Try OpenAI first ──────────────────────────────────────
+      if (openaiKey) {
+        const imagePrompt = job.title
+          ? `A beautiful, professional cover photo for a travel blog article titled "${job.title}" about Hue, Vietnam. Cinematic, warm lighting, 16:9, no text.`
+          : "Imperial Hue boutique hotel, luxury room, cinematic style"
 
-      const imgResponse = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${openaiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "gpt-image-1",
-          prompt: imagePrompt,
-          size: "1024x1024",
-        }),
-      })
+        console.log("[automation-run] Sending OpenAI image prompt", { imagePrompt })
 
-      const imgData = await imgResponse.json()
-
-      if (!imgResponse.ok) {
-        console.error("[automation-run] OpenAI image generation failed", { error: imgData })
-        await writeLog(supabaseAdmin, "generate-image", "failed", imgData?.error?.message || "OpenAI image generation failed", null, Date.now() - actionStart)
-        return new Response(
-          JSON.stringify({
-            success: false,
-            message: imgData?.error?.message || "OpenAI image generation failed",
+        const imgResponse = await fetch("https://api.openai.com/v1/images/generations", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${openaiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-image-1",
+            prompt: imagePrompt,
+            size: "1024x1024",
           }),
-          { status: imgResponse.status, headers: jsonHeaders },
-        )
+        })
+
+        const imgData = await imgResponse.json()
+
+        if (!imgResponse.ok) {
+          console.error("[automation-run] OpenAI image generation failed, will try Unsplash fallback", { error: imgData?.error?.message })
+        } else {
+          const imageObject = imgData?.data?.[0]
+          const directUrl = imageObject?.url || null
+          const base64Image = imageObject?.b64_json || null
+          imageUrl = directUrl || (base64Image ? `data:image/png;base64,${base64Image}` : null)
+
+          if (imageUrl) {
+            imageSource = "openai"
+            console.log("[automation-run] OpenAI image generated successfully", {
+              imageUrlType: directUrl ? "url" : "b64_json",
+            })
+          } else {
+            console.warn("[automation-run] OpenAI returned no usable image data, will try Unsplash fallback")
+          }
+        }
+      } else {
+        console.log("[automation-run] No OPENAI_API_KEY, skipping OpenAI, will try Unsplash directly")
       }
 
-      const imageObject = imgData?.data?.[0]
-      const directUrl = imageObject?.url || null
-      const base64Image = imageObject?.b64_json || null
-      const imageUrl = directUrl || (base64Image ? `data:image/png;base64,${base64Image}` : null)
+      // ── Fallback to Unsplash ──────────────────────────────────
+      if (!imageUrl && unsplashAccessKey) {
+        const searchQuery = job.title
+          ? `${job.title} Hue Vietnam travel`
+          : "Hue Vietnam travel landscape"
 
-      console.log("[automation-run] Image generation response received", {
-        hasDirectUrl: Boolean(directUrl),
-        hasBase64: Boolean(base64Image),
-        resolvedImageUrlType: directUrl ? "url" : base64Image ? "data-url" : "none",
-      })
+        console.log("[automation-run] Trying Unsplash fallback", { query: searchQuery })
+        imageUrl = await searchUnsplash(unsplashAccessKey, searchQuery)
+
+        if (imageUrl) {
+          imageSource = "unsplash"
+        }
+      }
 
       if (!imageUrl) {
-        console.error("[automation-run] Image generation returned neither url nor b64_json", { imgData })
-        await writeLog(supabaseAdmin, "generate-image", "failed", "Image generation returned no usable image data", null, Date.now() - actionStart)
+        const failReason = !openaiKey
+          ? "Không có OPENAI_API_KEY và Unsplash cũng không tìm thấy ảnh phù hợp"
+          : "OpenAI tạo ảnh thất bại và Unsplash cũng không tìm thấy ảnh phù hợp"
+
+        console.error("[automation-run] All image sources exhausted", { failReason })
+        await writeLog(supabaseAdmin, "generate-image", "failed", failReason, { jobId: job.id, title: job.title }, Date.now() - actionStart)
         return new Response(
-          JSON.stringify({ success: false, message: "Image generation returned no usable image data" }),
+          JSON.stringify({ success: false, message: failReason }),
           { headers: jsonHeaders },
         )
       }
@@ -564,7 +632,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
       console.log("[automation-run] Updated ai_content_jobs.image_url", {
         jobId: job.id,
         articleId: job.article_id,
-        imageUrlType: directUrl ? "url" : "data-url",
+        imageSource,
       })
 
       if (job.article_id) {
@@ -591,8 +659,8 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       const durationMs = Date.now() - actionStart
       await writeLog(supabaseAdmin, "generate-image", "success",
-        `Đã tạo ảnh cho bài "${job.title || 'không tên'}"`,
-        { jobId: job.id, articleId: job.article_id, imageUrl },
+        `Đã lấy ảnh cho bài "${job.title || 'không tên'}" (nguồn: ${imageSource})`,
+        { jobId: job.id, articleId: job.article_id, imageUrl, imageSource },
         durationMs
       )
 
@@ -601,7 +669,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
           success: true,
           image_url: imageUrl,
           article_id: job.article_id,
-          image_source: directUrl ? "url" : "b64_json",
+          image_source: imageSource,
           duration_ms: durationMs,
         }),
         { headers: jsonHeaders },
