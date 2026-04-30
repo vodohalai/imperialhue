@@ -200,17 +200,6 @@ const AutomationWorkflow = () => {
     }
   };
 
-  const initData = async () => {
-    const { error } = await supabase.functions.invoke("init-automation-tables");
-    if (error) {
-      showError("Không thể khởi tạo dữ liệu automation. Lỗi: " + error.message);
-      return;
-    }
-
-    showSuccess("Đã khởi tạo dữ liệu automation");
-    setRefreshTrigger((prev) => prev + 1);
-  };
-
   const workflowMode: WorkflowMode = control?.mode || "running";
   const isPaused = workflowMode === "paused";
 
@@ -603,23 +592,6 @@ const AutomationWorkflow = () => {
           </div>
         </div>
       </section>
-
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={initData}
-          className="rounded-full border border-[#d9e7e5] bg-white px-5 py-3 text-sm font-bold text-[#0D9488] transition hover:bg-[#f7fbfa]"
-        >
-          Khởi tạo dữ liệu mẫu
-        </button>
-        <button
-          type="button"
-          onClick={() => setRefreshTrigger((prev) => prev + 1)}
-          className="rounded-full border border-[#ece6dd] bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-        >
-          Làm mới dữ liệu
-        </button>
-      </div>
     </div>
   );
 };
