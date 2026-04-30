@@ -19,20 +19,23 @@ serve(async (req) => {
     const connection = await pool.connect()
 
     try {
-      // Create table if not exists
       await connection.queryObject(`
         CREATE TABLE IF NOT EXISTS public.workflow_controls (
           id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
           workflow_key text NOT NULL UNIQUE,
           mode text NOT NULL DEFAULT 'running' CHECK (mode IN ('running', 'paused')),
+          default_schedule_time text NOT NULL DEFAULT '06:00',
           updated_at timestamp with time zone DEFAULT now()
         )
       `)
 
-      // Enable RLS
+      await connection.queryObject(`
+        ALTER TABLE public.workflow_controls
+        ADD COLUMN IF NOT EXISTS default_schedule_time text NOT NULL DEFAULT '06:00'
+      `)
+
       await connection.queryObject(`ALTER TABLE public.workflow_controls ENABLE ROW LEVEL SECURITY`)
 
-      // Create policies
       await connection.queryObject(`
         DO $$
         BEGIN
@@ -47,15 +50,18 @@ serve(async (req) => {
         $$;
       `)
 
-      // Insert initial row if missing
       const result = await connection.queryObject(
-        `INSERT INTO public.workflow_controls (workflow_key, mode) VALUES ($1, 'running') ON CONFLICT (workflow_key) DO NOTHING RETURNING id`,
+        `INSERT INTO public.workflow_controls (workflow_key, mode, default_schedule_time)
+         VALUES ($1, 'running', '06:00')
+         ON CONFLICT (workflow_key) DO UPDATE
+         SET default_schedule_time = COALESCE(public.workflow_controls.default_schedule_time, '06:00')
+         RETURNING id`,
         ['blog_automation']
       )
       const created = result.rows.length > 0
 
       return new Response(
-        JSON.stringify({ success: true, message: created ? "Table created and row inserted" : "Table already exists" }),
+        JSON.stringify({ success: true, message: created ? "Table ready" : "Table already exists" }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     } finally {

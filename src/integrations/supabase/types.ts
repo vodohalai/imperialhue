@@ -51,5 +51,6 @@ export interface WorkflowControl {
   id: string;
   workflow_key: string;
   mode: WorkflowMode;
+  default_schedule_time?: string | null;
   updated_at: string;
 }

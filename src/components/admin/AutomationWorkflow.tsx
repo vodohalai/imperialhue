@@ -40,6 +40,7 @@ const AutomationWorkflow = () => {
   const [control, setControl] = useState<WorkflowControl | null>(null);
   const [loadingControl, setLoadingControl] = useState(true);
   const [savingControl, setSavingControl] = useState(false);
+  const [savingScheduleTime, setSavingScheduleTime] = useState(false);
   const [runningAction, setRunningAction] = useState<"research" | "write" | "generate-image" | "full" | null>(null);
   const [approving, setApproving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -70,18 +71,22 @@ const AutomationWorkflow = () => {
     }
 
     if (data) {
-      setControl(data as WorkflowControl);
+      const workflowData = data as WorkflowControl;
+      setControl(workflowData);
+      setScheduleTime(workflowData.default_schedule_time || "06:00");
     } else {
       const { data: inserted, error: insertError } = await supabase
         .from("workflow_controls")
-        .insert([{ workflow_key: WORKFLOW_KEY, mode: "running" }])
+        .insert([{ workflow_key: WORKFLOW_KEY, mode: "running", default_schedule_time: "06:00" }])
         .select()
         .single();
 
       if (insertError) {
         showError(insertError.message);
       } else {
-        setControl(inserted as WorkflowControl);
+        const workflowData = inserted as WorkflowControl;
+        setControl(workflowData);
+        setScheduleTime(workflowData.default_schedule_time || "06:00");
       }
     }
 
@@ -200,6 +205,32 @@ const AutomationWorkflow = () => {
     } finally {
       setLoadingControl(false);
     }
+  };
+
+  const saveScheduleTime = async (value: string) => {
+    if (!control) return;
+
+    setSavingScheduleTime(true);
+
+    const { data, error } = await supabase
+      .from("workflow_controls")
+      .update({
+        default_schedule_time: value,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", control.id)
+      .select()
+      .single();
+
+    if (error) {
+      showError(error.message);
+      setSavingScheduleTime(false);
+      return;
+    }
+
+    setControl(data as WorkflowControl);
+    showSuccess(`Đã lưu giờ mặc định ${value}`);
+    setSavingScheduleTime(false);
   };
 
   const workflowMode: WorkflowMode = control?.mode || "running";
@@ -435,9 +466,13 @@ const AutomationWorkflow = () => {
                 type="time"
                 value={scheduleTime}
                 onChange={(e) => setScheduleTime(e.target.value)}
+                onBlur={() => saveScheduleTime(scheduleTime)}
                 className="rounded-xl border border-[#d9e7e5] bg-white px-3 py-2 text-sm font-semibold text-slate-700 outline-none"
               />
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              {savingScheduleTime ? "Đang lưu..." : "Giờ mặc định này được lưu trong hệ thống"}
+            </p>
           </div>
 
           <div className="rounded-[1.75rem] bg-[#fff8f2] p-4">
