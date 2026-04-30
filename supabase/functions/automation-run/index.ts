@@ -411,7 +411,7 @@ LƯU Ý QUAN TRỌNG:
             {
               role: "system",
               content:
-                'Bạn là chuyên gia Content SEO du lịch Huế và copywriter khách sạn cao cấp với 10 năm kinh nghiệm. Bài viết của bạn phải khiến người đọc KHÔNG THỂ RỜI MẮT.\n\n═══ YÊU CẦU ĐẦU RA ═══\n- Trả về ĐÚNG JSON object: { title, excerpt, content, category }\n- "content" là HTML thuần (không markdown, không <code>, không <pre>)\n- Độ dài: 900–1200 từ\n- KHÔNG thêm text nào ngoài JSON\n\n═══ CẤU TRÚC HTML (PHẢI CÓ KHOẢNG CÁCH RÕ RÀNG) ═══\n- MỞ ĐẦU: 1 thẻ <p> hấp dẫn, gây tò mò\n- Mỗi phần dùng <h2 style="margin-top:2.5rem; margin-bottom:1rem; font-size:1.5rem; font-weight:800; color:#0f172a">...</h2>\n- Mỗi <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:1.15rem; font-weight:700; color:#1e293b">...</h3>\n- Mỗi <p style="margin-bottom:1.25rem; font-size:1.05rem; line-height:1.85; color:#475569">...</p>\n- Mỗi <ul style="margin-bottom:1.25rem; padding-left:1.5rem"> với <li style="margin-bottom:0.5rem; font-size:1.05rem; line-height:1.75; color:#475569">...</li>\n- KHÔNG dùng <br/> để tạo khoảng cách — dùng margin CSS\n- TUYỆT ĐỐI KHÔNG thêm link hay URL\n\n═══ KỸ THUẬT VIẾT LÔI CUỐN ═══\nMỞ BÀI (100–150 từ): Bắt đầu bằng câu hỏi tu từ, sự thật thú vị, hoặc khung cảnh sống động. KHÔNG mở bài bằng "Huế là..." hay "Chào mừng...". Phải khiến người đọc TÒ MÒ ngay câu đầu.\n\nTHÂN BÀI (4–6 phần <h2>): Mỗi phần là một "câu chuyện nhỏ" — có bối cảnh, chi tiết cụ thể, giá trị thực. Dùng SỐ LIỆU, TÊN RIÊNG, ĐỊA CHỈ, GIÁ CẢ, MẸO CÁ NHÂN. Viết như đang kể cho bạn thân.\n\nKẾT BÀI (80–120 từ): Tổng kết tự nhiên, gợi mở hành động. Có thể liên hệ nhẹ đến Imperial Hue (1 câu).\n\nGIỌNG ĐIỆU: Như một người bạn Huế sành sỏi thì thầm bí mật — ấm áp, tinh tế, thỉnh thoảng hài hước. Dùng câu ngắn xen câu dài. Đoạn không quá 4 câu.\n\n═══ CHẤT LƯỢNG NỘI DUNG ═══\n- MỌI THÔNG TIN phải THẬT và CỤ THỂ. Không placeholder. Viết "quán Bún Bò Huế Bà Tuyết, 47 Nguyễn Công Trứ" chứ không phải "một quán ăn nổi tiếng".\n- Tận dụng TRIỆT ĐỂ dữ liệu nghiên cứu — đó là nguyên liệu chính.\n- Nhắc Imperial Hue tối đa 2 lần, thật tự nhiên.\n\n═══ SEO ═══\n- Từ khóa chính trong: title, excerpt, mở bài, 1–2 thẻ <h2>, kết bài\n- Title: 50–65 ký tự, gây tò mò, chứa từ khóa chính\n- Excerpt: 140–170 ký tự, tóm lược giá trị, chứa từ khóa chính\n- Category: MỘT trong [Ẩm thực, Di tích, Lịch trình, Văn hóa, Kinh nghiệm, Du lịch]',
+                'Bạn là chuyên gia Content SEO du lịch Huế và copywriter khách sạn cao cấp với 10 năm kinh nghiệm. Bài viết của bạn phải khiến người đọc KHÔNG THỂ RỜI MẮT.\n\n═══ YÊU CẦU ĐẦU RA ═══\n- Trả về ĐÚNG JSON object: { title, excerpt, content, category }\n- "content" là HTML thuần (không markdown, không <code>, không <pre>)\n- Độ dài: 900–1200 từ\n- KHÔNG thêm text nào ngoài JSON\n\n═══ CẤU TRÚC HTML (PHẢI CÓ KHOẢNG CÁCH RÕ RÀNG) ═══\n- MỞ ĐẦU: 1 thẻ <p> hấp dẫn, gây tò mò\n- Mỗi phần dùng <h2 style="margin-top:2.5rem; margin-bottom:1rem; font-size:1.5rem; font-weight:800; color:#0f172a">...</h2>\n- Mỗi <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:1.15rem; font-weight:700; color:#1e293b">...</h3>\n- Mỗi <p style="margin-bottom:1.25rem; font-size:1.05rem; line-height:1.85; color:#475569">...</p>\n- Mỗi <ul style="margin-bottom:1.25rem; padding-left:1.5rem"> với <li style="margin-bottom:0.5rem; font-size:1.05rem; line-height:1.75; color:#475569">...</li>\n- KHÔNG dùng <br/> để tạo khoảng cách — dùng margin CSS\n- TUYỆT ĐỐI KHÔNG thêm link hay URL',
             },
             { role: "user", content: prompt },
           ],
@@ -574,17 +574,17 @@ LƯU Ý QUAN TRỌNG:
       const actionStart = Date.now()
       console.log("[automation-run] Starting generate-image flow")
 
+      // ── Bước 1: Tìm job CHƯA CÓ ẢNH (bất kể status) ──────────
       const { data: job, error: jobError } = await supabaseAdmin
         .from("ai_content_jobs")
         .select("*")
-        .eq("status", "draft_ai")
         .is("image_url", null)
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle()
 
       if (jobError) {
-        console.error("[automation-run] Failed to fetch image job", { message: jobError.message })
+        console.error("[automation-run] Failed to fetch job for image", { message: jobError.message })
         await writeLog(supabaseAdmin, "generate-image", "failed", jobError.message, null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: jobError.message }),
@@ -592,8 +592,41 @@ LƯU Ý QUAN TRỌNG:
         )
       }
 
-      if (!job) {
-        console.error("[automation-run] No draft_ai job without image_url found")
+      // ── Bước 2: Fallback – tìm ARTICLE chưa có ảnh ────────────
+      let targetJob = job
+      let targetArticleId: string | null = job?.article_id || null
+      let targetTitle: string | null = job?.title || null
+
+      if (!targetJob) {
+        console.log("[automation-run] No job without image found, checking articles directly")
+
+        const { data: article } = await supabaseAdmin
+          .from("articles")
+          .select("*")
+          .or('image_url.is.null,image_url.eq.""')
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (article) {
+          targetArticleId = article.id
+          targetTitle = article.title
+          console.log("[automation-run] Found article without image", {
+            articleId: article.id,
+            title: article.title,
+          })
+        }
+      } else {
+        console.log("[automation-run] Found job for image generation", {
+          jobId: job.id,
+          title: job.title,
+          articleId: job.article_id,
+          jobStatus: job.status,
+        })
+      }
+
+      if (!targetArticleId) {
+        console.error("[automation-run] No article or job needs an image")
         await writeLog(supabaseAdmin, "generate-image", "skipped", "Không có bài viết nào cần ảnh", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Không có bài viết nào cần ảnh." }),
@@ -601,12 +634,7 @@ LƯU Ý QUAN TRỌNG:
         )
       }
 
-      console.log("[automation-run] Found job for image generation", {
-        jobId: job.id,
-        title: job.title,
-        articleId: job.article_id,
-      })
-
+      // ── Bước 3: Generate ảnh ───────────────────────────────────
       const unsplashAccessKey = Deno.env.get("UNSPLASH_ACCESS_KEY")
 
       if (!openaiKey && !unsplashAccessKey) {
@@ -623,8 +651,8 @@ LƯU Ý QUAN TRỌNG:
 
       // ── Try OpenAI first ──────────────────────────────────────
       if (openaiKey) {
-        const imagePrompt = job.title
-          ? `A beautiful, professional cover photo for a travel blog article titled "${job.title}" about Hue, Vietnam. Cinematic, warm lighting, 16:9, no text.`
+        const imagePrompt = targetTitle
+          ? `A beautiful, professional cover photo for a travel blog article titled "${targetTitle}" about Hue, Vietnam. Cinematic, warm lighting, 16:9, no text.`
           : "Imperial Hue boutique hotel, luxury room, cinematic style"
 
         console.log("[automation-run] Sending OpenAI image prompt", { imagePrompt })
@@ -682,65 +710,68 @@ LƯU Ý QUAN TRỌNG:
           : "OpenAI tạo ảnh thất bại và Unsplash cũng không tìm thấy ảnh phù hợp"
 
         console.error("[automation-run] All image sources exhausted", { failReason })
-        await writeLog(supabaseAdmin, "generate-image", "failed", failReason, { jobId: job.id, title: job.title }, Date.now() - actionStart)
+        await writeLog(supabaseAdmin, "generate-image", "failed", failReason, { articleId: targetArticleId, title: targetTitle }, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: failReason }),
           { headers: jsonHeaders },
         )
       }
 
-      const { error: updateJobError } = await supabaseAdmin
-        .from("ai_content_jobs")
+      // ── Bước 4: Cập nhật article ──────────────────────────────
+      const { error: updateArticleError } = await supabaseAdmin
+        .from("articles")
         .update({
           image_url: imageUrl,
           updated_at: new Date().toISOString(),
         })
-        .eq("id", job.id)
+        .eq("id", targetArticleId)
 
-      if (updateJobError) {
-        console.error("[automation-run] Failed to update ai_content_jobs.image_url", {
-          jobId: job.id,
-          message: updateJobError.message,
+      if (updateArticleError) {
+        console.error("[automation-run] Failed to update articles.image_url", {
+          articleId: targetArticleId,
+          message: updateArticleError.message,
         })
-        await writeLog(supabaseAdmin, "generate-image", "failed", updateJobError.message, { jobId: job.id }, Date.now() - actionStart)
+        await writeLog(supabaseAdmin, "generate-image", "failed", updateArticleError.message, { articleId: targetArticleId }, Date.now() - actionStart)
         return new Response(
-          JSON.stringify({ success: false, message: updateJobError.message }),
+          JSON.stringify({ success: false, message: updateArticleError.message }),
           { status: 500, headers: jsonHeaders },
         )
       }
 
-      console.log("[automation-run] Updated ai_content_jobs.image_url", {
-        jobId: job.id,
-        articleId: job.article_id,
+      console.log("[automation-run] Updated article image_url", {
+        articleId: targetArticleId,
         imageSource,
       })
 
-      if (job.article_id) {
-        const { error: updateArticleError } = await supabaseAdmin
-          .from("articles")
+      // ── Bước 5: Cập nhật job (nếu có) ──────────────────────────
+      if (targetJob) {
+        const { error: updateJobError } = await supabaseAdmin
+          .from("ai_content_jobs")
           .update({
             image_url: imageUrl,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", job.article_id)
+          .eq("id", targetJob.id)
 
-        if (updateArticleError) {
-          console.error("[automation-run] Failed to update articles.image_url", {
-            articleId: job.article_id,
-            message: updateArticleError.message,
+        if (updateJobError) {
+          console.error("[automation-run] Failed to update ai_content_jobs.image_url", {
+            jobId: targetJob.id,
+            message: updateJobError.message,
           })
-          await writeLog(supabaseAdmin, "generate-image", "failed", updateArticleError.message, { articleId: job.article_id, jobId: job.id }, Date.now() - actionStart)
+          await writeLog(supabaseAdmin, "generate-image", "failed", updateJobError.message, { jobId: targetJob.id }, Date.now() - actionStart)
           return new Response(
-            JSON.stringify({ success: false, message: updateArticleError.message }),
+            JSON.stringify({ success: false, message: updateJobError.message }),
             { status: 500, headers: jsonHeaders },
           )
         }
+
+        console.log("[automation-run] Updated job image_url", { jobId: targetJob.id })
       }
 
       const durationMs = Date.now() - actionStart
       await writeLog(supabaseAdmin, "generate-image", "success",
-        `Đã lấy ảnh cho bài "${job.title || 'không tên'}" (nguồn: ${imageSource})`,
-        { jobId: job.id, articleId: job.article_id, imageUrl, imageSource },
+        `Đã lấy ảnh cho bài "${targetTitle || 'không tên'}" (nguồn: ${imageSource})`,
+        { articleId: targetArticleId, jobId: targetJob?.id || null, imageUrl, imageSource },
         durationMs
       )
 
@@ -748,7 +779,7 @@ LƯU Ý QUAN TRỌNG:
         JSON.stringify({
           success: true,
           image_url: imageUrl,
-          article_id: job.article_id,
+          article_id: targetArticleId,
           image_source: imageSource,
           duration_ms: durationMs,
         }),
