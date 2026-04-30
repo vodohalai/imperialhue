@@ -1,1 +1,0 @@
-SELECT id, title, status, excerpt FROM articles WHERE title ILIKE '%am thuc Hue%' OR title ILIKE '%am thuc hue%' OR content ILIKE '%Bun bo Hue%' ORDER BY created_at DESC LIMIT 5;
