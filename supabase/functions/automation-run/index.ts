@@ -12,6 +12,8 @@ const jsonHeaders = {
   "Content-Type": "application/json",
 }
 
+const WORKFLOW_KEY = "blog_automation"
+
 const buildSlug = (value: string) =>
   value
     ?.toLowerCase()
@@ -48,7 +50,24 @@ const fetchSearchResults = async (apiKey: string, query: string) => {
   return data
 }
 
+async function writeLog(supabaseAdmin, action, status, message, details = null, durationMs = null) {
+  try {
+    await supabaseAdmin.from("workflow_logs").insert([{
+      workflow_key: WORKFLOW_KEY,
+      action,
+      status,
+      message,
+      details,
+      duration_ms: durationMs,
+    }])
+  } catch (logError) {
+    console.error("[automation-run] Failed to write log:", logError.message)
+  }
+}
+
 serve(async (req) => {
+  const startTime = Date.now()
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders })
   }
@@ -75,9 +94,14 @@ serve(async (req) => {
     const openaiKey = Deno.env.get("OPENAI_API_KEY")
     const tavilyKey = Deno.env.get("TAVILY_API_KEY")
 
+    // ─── RESEARCH ────────────────────────────────────────────────
     if (action === "research") {
+      const actionStart = Date.now()
+      console.log("[automation-run] Starting live research with Tavily")
+
       if (!openaiKey) {
         console.error("[automation-run] Missing OPENAI_API_KEY for research")
+        await writeLog(supabaseAdmin, "research", "failed", "Thiếu OPENAI_API_KEY", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
           { status: 500, headers: jsonHeaders },
@@ -86,13 +110,12 @@ serve(async (req) => {
 
       if (!tavilyKey) {
         console.error("[automation-run] Missing TAVILY_API_KEY for research")
+        await writeLog(supabaseAdmin, "research", "failed", "Thiếu TAVILY_API_KEY", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Missing TAVILY_API_KEY" }),
           { status: 500, headers: jsonHeaders },
         )
       }
-
-      console.log("[automation-run] Starting live research with Tavily")
 
       const trendQueries = [
         "xu hướng du lịch Huế mới nhất 2026",
@@ -146,6 +169,7 @@ serve(async (req) => {
 
       if (!aiResponse.ok) {
         console.error("[automation-run] OpenAI research failed", { error: aiData })
+        await writeLog(supabaseAdmin, "research", "failed", aiData?.error?.message || "OpenAI research failed", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({
             success: false,
@@ -162,6 +186,7 @@ serve(async (req) => {
 
       if (!topics.length) {
         console.error("[automation-run] No topics returned from AI")
+        await writeLog(supabaseAdmin, "research", "failed", "AI không trả về chủ đề nào", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "AI không trả về chủ đề nào" }),
           { status: 200, headers: jsonHeaders },
@@ -205,15 +230,26 @@ serve(async (req) => {
         errors: errors.length,
       })
 
+      const durationMs = Date.now() - actionStart
+      await writeLog(supabaseAdmin, "research", "success",
+        `Đã tìm thấy ${insertedTopics.length} chủ đề mới`,
+        { topics: insertedTopics.map((t: any) => ({ id: t.id, topic: t.topic, keyword: t.keyword })), errors: errors.length > 0 ? errors : undefined },
+        durationMs
+      )
+
       return new Response(
-        JSON.stringify({ success: true, topics: insertedTopics, errors }),
+        JSON.stringify({ success: true, topics: insertedTopics, errors, duration_ms: durationMs }),
         { headers: jsonHeaders },
       )
     }
 
+    // ─── WRITE ───────────────────────────────────────────────────
     if (action === "write") {
+      const actionStart = Date.now()
+
       if (!openaiKey) {
         console.error("[automation-run] Missing OPENAI_API_KEY for write")
+        await writeLog(supabaseAdmin, "write", "failed", "Thiếu OPENAI_API_KEY", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
           { status: 500, headers: jsonHeaders },
@@ -231,6 +267,7 @@ serve(async (req) => {
 
       if (topicError) {
         console.error("[automation-run] Failed to fetch pending topic", { message: topicError.message })
+        await writeLog(supabaseAdmin, "write", "failed", topicError.message, null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: topicError.message }),
           { status: 500, headers: jsonHeaders },
@@ -239,6 +276,7 @@ serve(async (req) => {
 
       if (!topic) {
         console.error("[automation-run] No pending topic found for write")
+        await writeLog(supabaseAdmin, "write", "skipped", "Không còn chủ đề nào đang chờ", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Không còn chủ đề nào đang chờ." }),
           { headers: jsonHeaders },
@@ -282,6 +320,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (!aiResponse.ok) {
         console.error("[automation-run] OpenAI write failed", { error: aiData })
+        await writeLog(supabaseAdmin, "write", "failed", aiData?.error?.message || "OpenAI write failed", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({
             success: false,
@@ -295,6 +334,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (!generated?.title || !generated?.content) {
         console.error("[automation-run] AI returned incomplete article payload", { generated })
+        await writeLog(supabaseAdmin, "write", "failed", "AI không trả về đủ dữ liệu bài viết", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "AI không trả về đủ dữ liệu bài viết." }),
           { headers: jsonHeaders },
@@ -315,6 +355,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (insertJobError) {
         console.error("[automation-run] Failed to insert ai_content_job", { message: insertJobError.message })
+        await writeLog(supabaseAdmin, "write", "failed", insertJobError.message, null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: insertJobError.message }),
           { status: 500, headers: jsonHeaders },
@@ -345,6 +386,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (articleError) {
         console.error("[automation-run] Failed to insert article", { message: articleError.message })
+        await writeLog(supabaseAdmin, "write", "failed", articleError.message, null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: articleError.message }),
           { status: 500, headers: jsonHeaders },
@@ -364,6 +406,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (linkError) {
         console.error("[automation-run] Failed to link job to article", { message: linkError.message })
+        await writeLog(supabaseAdmin, "write", "failed", linkError.message, { articleId: article.id, jobId: job.id }, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: linkError.message }),
           { status: 500, headers: jsonHeaders },
@@ -377,19 +420,29 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (topicUpdateError) {
         console.error("[automation-run] Failed to mark topic as used", { message: topicUpdateError.message })
+        await writeLog(supabaseAdmin, "write", "failed", topicUpdateError.message, { articleId: article.id, topicId: topic.id }, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: topicUpdateError.message }),
           { status: 500, headers: jsonHeaders },
         )
       }
 
+      const durationMs = Date.now() - actionStart
+      await writeLog(supabaseAdmin, "write", "success",
+        `Đã viết bài "${generated.title}"`,
+        { articleId: article.id, slug: article.slug, topicId: topic.id, topic: topic.topic },
+        durationMs
+      )
+
       return new Response(
-        JSON.stringify({ success: true, job, article }),
+        JSON.stringify({ success: true, job, article, duration_ms: durationMs }),
         { headers: jsonHeaders },
       )
     }
 
+    // ─── GENERATE IMAGE ──────────────────────────────────────────
     if (action === "generate-image") {
+      const actionStart = Date.now()
       console.log("[automation-run] Starting generate-image flow")
 
       const { data: job, error: jobError } = await supabaseAdmin
@@ -403,6 +456,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (jobError) {
         console.error("[automation-run] Failed to fetch image job", { message: jobError.message })
+        await writeLog(supabaseAdmin, "generate-image", "failed", jobError.message, null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: jobError.message }),
           { status: 500, headers: jsonHeaders },
@@ -411,6 +465,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (!job) {
         console.error("[automation-run] No draft_ai job without image_url found")
+        await writeLog(supabaseAdmin, "generate-image", "skipped", "Không có bài viết nào cần ảnh", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Không có bài viết nào cần ảnh." }),
           { headers: jsonHeaders },
@@ -425,6 +480,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (!openaiKey) {
         console.error("[automation-run] Missing OPENAI_API_KEY for generate-image")
+        await writeLog(supabaseAdmin, "generate-image", "failed", "Thiếu OPENAI_API_KEY", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
           { status: 500, headers: jsonHeaders },
@@ -454,6 +510,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (!imgResponse.ok) {
         console.error("[automation-run] OpenAI image generation failed", { error: imgData })
+        await writeLog(supabaseAdmin, "generate-image", "failed", imgData?.error?.message || "OpenAI image generation failed", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({
             success: false,
@@ -476,6 +533,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       if (!imageUrl) {
         console.error("[automation-run] Image generation returned neither url nor b64_json", { imgData })
+        await writeLog(supabaseAdmin, "generate-image", "failed", "Image generation returned no usable image data", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: "Image generation returned no usable image data" }),
           { headers: jsonHeaders },
@@ -495,6 +553,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
           jobId: job.id,
           message: updateJobError.message,
         })
+        await writeLog(supabaseAdmin, "generate-image", "failed", updateJobError.message, { jobId: job.id }, Date.now() - actionStart)
         return new Response(
           JSON.stringify({ success: false, message: updateJobError.message }),
           { status: 500, headers: jsonHeaders },
@@ -521,6 +580,7 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
             articleId: job.article_id,
             message: updateArticleError.message,
           })
+          await writeLog(supabaseAdmin, "generate-image", "failed", updateArticleError.message, { articleId: job.article_id, jobId: job.id }, Date.now() - actionStart)
           return new Response(
             JSON.stringify({ success: false, message: updateArticleError.message }),
             { status: 500, headers: jsonHeaders },
@@ -528,23 +588,44 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
         }
       }
 
+      const durationMs = Date.now() - actionStart
+      await writeLog(supabaseAdmin, "generate-image", "success",
+        `Đã tạo ảnh cho bài "${job.title || 'không tên'}"`,
+        { jobId: job.id, articleId: job.article_id, imageUrl },
+        durationMs
+      )
+
       return new Response(
         JSON.stringify({
           success: true,
           image_url: imageUrl,
           article_id: job.article_id,
           image_source: directUrl ? "url" : "b64_json",
+          duration_ms: durationMs,
         }),
         { headers: jsonHeaders },
       )
     }
 
+    // ─── UNSUPPORTED ─────────────────────────────────────────────
     return new Response(
       JSON.stringify({ success: false, message: "Unsupported action" }),
       { status: 400, headers: jsonHeaders },
     )
   } catch (error) {
+    const durationMs = Date.now() - startTime
     console.error("[automation-run] Error:", error?.message || error)
+
+    try {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      )
+      await writeLog(supabaseAdmin, "unknown", "failed", error?.message || "Unknown server error", { stack: error?.stack }, durationMs)
+    } catch (_) {
+      // silent - can't log if logging itself fails
+    }
+
     return new Response(
       JSON.stringify({ success: false, message: error?.message || "Unknown server error" }),
       { status: 500, headers: jsonHeaders },

@@ -3,6 +3,8 @@ import {
   Bot,
   CalendarClock,
   CheckCircle2,
+  Clock,
+  History,
   PauseCircle,
   PlayCircle,
   Search,
@@ -11,10 +13,12 @@ import {
   Trash2,
   Wand2,
   ExternalLink,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
-import type { Article, WorkflowControl, WorkflowMode, SeoTopic, AiContentJob } from "@/integrations/supabase/types";
+import type { Article, WorkflowControl, WorkflowMode, SeoTopic, AiContentJob, WorkflowLog } from "@/integrations/supabase/types";
 import { useAutomationStats } from "@/hooks/useAutomationStats";
 
 type ReviewItem = {
@@ -54,7 +58,10 @@ const AutomationWorkflow = () => {
   const [reviewItem, setReviewItem] = useState<ReviewItem | null>(null);
   const [scheduledArticles, setScheduledArticles] = useState<Article[]>([]);
   const [loadingQueues, setLoadingQueues] = useState(false);
-  const { stats } = useAutomationStats(refreshTrigger);
+  const [workflowLogs, setWorkflowLogs] = useState<WorkflowLog[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [runningScheduler, setRunningScheduler] = useState(false);
+  const { stats, lastActivity } = useAutomationStats(refreshTrigger);
 
   const fetchControl = async () => {
     setLoadingControl(true);
@@ -157,12 +164,56 @@ const AutomationWorkflow = () => {
     setLoadingQueues(false);
   };
 
+  const fetchLogs = async () => {
+    setLoadingLogs(true);
+    const { data, error } = await supabase
+      .from("workflow_logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(20);
+
+    if (error) {
+      console.error("Failed to fetch workflow logs:", error.message);
+    } else {
+      setWorkflowLogs((data || []) as WorkflowLog[]);
+    }
+    setLoadingLogs(false);
+  };
+
+  const handleRunScheduler = async () => {
+    if (runningScheduler) return;
+    setRunningScheduler(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("workflow-scheduler");
+      if (error) {
+        showError("Lỗi chạy scheduler: " + error.message);
+      } else {
+        const published = data?.actions?.length || 0;
+        if (published > 0) {
+          showSuccess(`Đã xuất bản ${published} bài theo lịch`);
+        } else {
+          showSuccess("Đã chạy scheduler — không có bài nào đến hạn");
+        }
+      }
+      await fetchLogs();
+      setRefreshTrigger((prev) => prev + 1);
+    } catch (err: any) {
+      showError(err.message || "Không thể chạy scheduler");
+    } finally {
+      setRunningScheduler(false);
+    }
+  };
+
   useEffect(() => {
     fetchControl().catch(() => undefined);
   }, []);
 
   useEffect(() => {
     fetchQueues().catch(() => undefined);
+  }, [refreshTrigger]);
+
+  useEffect(() => {
+    fetchLogs().catch(() => undefined);
   }, [refreshTrigger]);
 
   useEffect(() => {
@@ -454,6 +505,20 @@ const AutomationWorkflow = () => {
               {isPaused ? <PlayCircle className="h-4 w-4" /> : <PauseCircle className="h-4 w-4" />}
               {savingControl ? "Đang cập nhật..." : isPaused ? "Tiếp tục" : "Tạm dừng"}
             </button>
+
+            <button
+              type="button"
+              onClick={handleRunScheduler}
+              disabled={runningScheduler || isPaused}
+              className="inline-flex items-center gap-2 rounded-full bg-[#6366f1] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#4f46e5] disabled:opacity-60"
+            >
+              {runningScheduler ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" />
+              ) : (
+                <Clock className="h-4 w-4" />
+              )}
+              {runningScheduler ? "Đang chạy..." : "Chạy scheduler ngay"}
+            </button>
           </div>
         </div>
 
@@ -473,16 +538,31 @@ const AutomationWorkflow = () => {
             <p className="mt-2 text-xs text-slate-500">
               {savingScheduleTime ? "Đang lưu..." : "Giờ mặc định này được lưu trong hệ thống"}
             </p>
+            {lastActivity.schedulerLastRun && (
+              <p className="mt-3 text-xs text-slate-400">
+                Lần chạy cuối: {new Date(lastActivity.schedulerLastRun).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+              </p>
+            )}
           </div>
 
           <div className="rounded-[1.75rem] bg-[#fff8f2] p-4">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Chờ duyệt</p>
             <p className="mt-3 text-3xl font-black text-slate-900">{stats.waitingReview}</p>
+            {lastActivity.writeLastRun && (
+              <p className="mt-3 text-xs text-slate-400">
+                Viết bài cuối: {new Date(lastActivity.writeLastRun).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+              </p>
+            )}
           </div>
 
           <div className="rounded-[1.75rem] bg-[#f5f7ff] p-4">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Đã lên lịch</p>
             <p className="mt-3 text-3xl font-black text-slate-900">{stats.scheduledJobs}</p>
+            {lastActivity.researchLastRun && (
+              <p className="mt-3 text-xs text-slate-400">
+                Research cuối: {new Date(lastActivity.researchLastRun).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -646,6 +726,97 @@ const AutomationWorkflow = () => {
               ))
             )}
           </div>
+        </div>
+      </section>
+
+      {/* ─── LỊCH SỬ HOẠT ĐỘNG ──────────────────────────────── */}
+      <section className="rounded-[2.25rem] border border-[#ece6dd] bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f5f3ff] text-[#6366f1]">
+            <History className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-slate-900">Lịch sử hoạt động</h2>
+            <p className="text-xs text-slate-500">Các lần chạy gần đây của scheduler, research, write, generate-image</p>
+          </div>
+        </div>
+
+        <div className="mt-5">
+          {loadingLogs ? (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 animate-pulse rounded-2xl bg-slate-100" />
+              ))}
+            </div>
+          ) : workflowLogs.length === 0 ? (
+            <div className="rounded-2xl bg-[#fbfaf7] px-5 py-8 text-center">
+              <AlertTriangle className="mx-auto h-8 w-8 text-slate-300" />
+              <p className="mt-3 text-sm font-semibold text-slate-400">Chưa có lịch sử hoạt động</p>
+              <p className="mt-1 text-xs text-slate-400">Nhấn nút "Chạy scheduler ngay" hoặc các nút automation để bắt đầu</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {workflowLogs.map((log) => {
+                const isSuccess = log.status === "success";
+                const isFailed = log.status === "failed";
+                const isSkipped = log.status === "skipped";
+
+                return (
+                  <div
+                    key={log.id}
+                    className={`flex items-start gap-4 rounded-2xl p-4 transition ${
+                      isFailed ? "bg-red-50" : isSkipped ? "bg-amber-50" : "bg-[#fbfaf7]"
+                    }`}
+                  >
+                    <div className="mt-0.5 shrink-0">
+                      {isSuccess && <CheckCircle2 className="h-5 w-5 text-teal-500" />}
+                      {isFailed && <XCircle className="h-5 w-5 text-red-500" />}
+                      {isSkipped && <AlertTriangle className="h-5 w-5 text-amber-500" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs font-bold uppercase tracking-[0.12em] ${
+                          log.action === "scheduler" ? "text-[#6366f1]" :
+                          log.action === "research" ? "text-[#f97316]" :
+                          log.action === "write" ? "text-[#0D9488]" :
+                          "text-[#2563eb]"
+                        }`}>
+                          {log.action}
+                        </span>
+                        {log.duration_ms != null && (
+                          <span className="text-xs text-slate-400">· {(log.duration_ms / 1000).toFixed(1)}s</span>
+                        )}
+                      </div>
+                      <p className={`mt-0.5 text-sm ${isFailed ? "text-red-700 font-semibold" : "text-slate-700"}`}>
+                        {log.message || "(không có mô tả)"}
+                      </p>
+                      {log.details && typeof log.details === "object" && "published" in log.details && (
+                        <div className="mt-2 space-y-1">
+                          {Array.isArray(log.details.published) && (log.details.published as string[]).map((item: string, i: number) => (
+                            <p key={i} className="text-xs text-slate-500 pl-1 border-l-2 border-slate-200">
+                              {item}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                      {log.details && typeof log.details === "object" && "topics" in log.details && (
+                        <div className="mt-2 space-y-1">
+                          {Array.isArray(log.details.topics) && (log.details.topics as Array<{topic: string}>).map((t, i: number) => (
+                            <p key={i} className="text-xs text-slate-500 pl-1 border-l-2 border-orange-200">
+                              → {t.topic}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-xs text-slate-400">
+                      {new Date(log.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </section>
     </div>

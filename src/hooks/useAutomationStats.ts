@@ -13,6 +13,13 @@ export interface AutomationStats {
   failedJobs: number;
 }
 
+export interface LastActivityTimes {
+  schedulerLastRun: string | null;
+  researchLastRun: string | null;
+  writeLastRun: string | null;
+  imageLastRun: string | null;
+}
+
 export function useAutomationStats(refreshTrigger: number = 0) {
   const [stats, setStats] = useState<AutomationStats>({
     totalTopics: 0,
@@ -24,6 +31,12 @@ export function useAutomationStats(refreshTrigger: number = 0) {
     waitingReview: 0,
     publishedJobs: 0,
     failedJobs: 0,
+  });
+  const [lastActivity, setLastActivity] = useState<LastActivityTimes>({
+    schedulerLastRun: null,
+    researchLastRun: null,
+    writeLastRun: null,
+    imageLastRun: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -52,6 +65,35 @@ export function useAutomationStats(refreshTrigger: number = 0) {
         const publishedJobs = jobs?.filter((j) => j.status === "published").length || 0;
         const failedJobs = jobs?.filter((j) => j.status === "failed").length || 0;
 
+        // Fetch last activity times from workflow_logs
+        const { data: logs } = await supabase
+          .from("workflow_logs")
+          .select("action, created_at, status")
+          .eq("status", "success")
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        const lastActivity: LastActivityTimes = {
+          schedulerLastRun: null,
+          researchLastRun: null,
+          writeLastRun: null,
+          imageLastRun: null,
+        };
+
+        if (logs) {
+          for (const log of logs) {
+            if (log.action === "scheduler" && !lastActivity.schedulerLastRun) {
+              lastActivity.schedulerLastRun = log.created_at;
+            } else if (log.action === "research" && !lastActivity.researchLastRun) {
+              lastActivity.researchLastRun = log.created_at;
+            } else if (log.action === "write" && !lastActivity.writeLastRun) {
+              lastActivity.writeLastRun = log.created_at;
+            } else if (log.action === "generate-image" && !lastActivity.imageLastRun) {
+              lastActivity.imageLastRun = log.created_at;
+            }
+          }
+        }
+
         if (!cancelled) {
           setStats({
             totalTopics,
@@ -64,11 +106,12 @@ export function useAutomationStats(refreshTrigger: number = 0) {
             publishedJobs,
             failedJobs,
           });
+          setLastActivity(lastActivity);
         }
       } catch (error) {
         console.error("Error fetching automation stats:", error);
         if (!cancelled) {
-          setStats(prev => prev); // giữ nguyên
+          setStats(prev => prev);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -80,7 +123,7 @@ export function useAutomationStats(refreshTrigger: number = 0) {
     return () => {
       cancelled = true;
     };
-  }, [refreshTrigger]); // re-fetch khi refreshTrigger thay đổi
+  }, [refreshTrigger]);
 
-  return { stats, loading };
+  return { stats, lastActivity, loading };
 }

@@ -1,0 +1,1 @@
+CREATE POLICY "Allow service role insert on workflow_logs" ON public.workflow_logs FOR INSERT TO authenticated WITH CHECK (true)

@@ -1,0 +1,1 @@
+CREATE POLICY "Allow authenticated select on workflow_logs" ON public.workflow_logs FOR SELECT TO authenticated USING (true)

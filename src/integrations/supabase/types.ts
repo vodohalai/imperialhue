@@ -54,3 +54,16 @@ export interface WorkflowControl {
   default_schedule_time?: string | null;
   updated_at: string;
 }
+
+export type WorkflowLogStatus = 'success' | 'failed' | 'skipped' | 'running';
+
+export interface WorkflowLog {
+  id: string;
+  workflow_key: string;
+  action: string;
+  status: WorkflowLogStatus;
+  message?: string | null;
+  details?: Record<string, unknown> | null;
+  duration_ms?: number | null;
+  created_at: string;
+}
