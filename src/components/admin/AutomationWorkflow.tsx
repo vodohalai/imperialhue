@@ -1,3 +1,4 @@
+// ... giữ nguyên phần đầu file, các import và hook không thay đổi
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Bot,
@@ -66,6 +67,7 @@ const AutomationWorkflow = () => {
   const [runningScheduler, setRunningScheduler] = useState(false);
   const [topicsCollapsed, setTopicsCollapsed] = useState(false);
   const [logsCollapsed, setLogsCollapsed] = useState(true);
+  const [columnCheckDone, setColumnCheckDone] = useState(false);
   const { stats, lastActivity } = useAutomationStats(refreshTrigger);
 
   // ── Đồng bộ auto_publish lên DB khi toggle ─────────────────
@@ -84,14 +86,12 @@ const AutomationWorkflow = () => {
     }
   }, [control]);
 
-  // Khi autoMode thay đổi, lưu localStorage và đồng bộ DB
   const handleToggleAutoMode = (newValue: boolean) => {
     setAutoMode(newValue);
     localStorage.setItem(AUTO_PILOT_STORAGE_KEY, String(newValue));
     syncAutoPublishToDb(newValue);
   };
 
-  // ── Lấy trạng thái từ DB khi load, ghi đè localStorage nếu có ──
   useEffect(() => {
     if (control) {
       const dbAutoPublish = control.auto_publish === true;
@@ -118,6 +118,32 @@ const AutomationWorkflow = () => {
 
     if (data) {
       const workflowData = data as WorkflowControl;
+      // Kiểm tra nếu cột auto_publish chưa có và chưa thử thêm
+      if (!columnCheckDone && typeof (data as any)?.auto_publish === 'undefined') {
+        try {
+          console.log("[AutomationWorkflow] auto_publish column missing, invoking add-auto-publish-column");
+          await supabase.functions.invoke('add-auto-publish-column');
+          // Gán giá trị mặc định cho control hiện tại để UI không bị lỗi
+          workflowData.auto_publish = false;
+          // Refetch sau khi thêm cột để có control đầy đủ
+          const { data: refreshed } = await supabase
+            .from("workflow_controls")
+            .select("*")
+            .eq("workflow_key", WORKFLOW_KEY)
+            .maybeSingle();
+          if (refreshed) {
+            setControl(refreshed as WorkflowControl);
+            setScheduleTime((refreshed as WorkflowControl).default_schedule_time || "06:00");
+            setColumnCheckDone(true);
+            setLoadingControl(false);
+            return;
+          }
+        } catch (invokeError: any) {
+          console.error("[AutomationWorkflow] Failed to invoke add-auto-publish-column:", invokeError.message);
+          // Vẫn tiếp tục với control hiện tại
+        }
+        setColumnCheckDone(true);
+      }
       setControl(workflowData);
       setScheduleTime(workflowData.default_schedule_time || "06:00");
     } else {
@@ -138,6 +164,8 @@ const AutomationWorkflow = () => {
 
     setLoadingControl(false);
   };
+
+  // ... giữ nguyên toàn bộ các hàm khác: fetchQueues, fetchLogs, handleRunScheduler, etc. (không thay đổi)
 
   const fetchQueues = async () => {
     setLoadingQueues(true);
@@ -361,7 +389,6 @@ const AutomationWorkflow = () => {
     setSavingControl(false);
   };
 
-  // Hàm invokeAutomation dùng chung, truyền auto_publish vào body
   const invokeAutomation = async (action: "research" | "write" | "generate-image", extra: Record<string, unknown> = {}) => {
     const body = { action, ...extra };
     const { data, error } = await supabase.functions.invoke("automation-run", { body });
@@ -393,12 +420,9 @@ const AutomationWorkflow = () => {
   const handleCreateDraft = async () => {
     setRunningAction("full");
     try {
-      // Gửi kèm auto_publish flag
       await invokeAutomation("write", { auto_publish: autoMode });
       await invokeAutomation("generate-image");
       showSuccess(autoMode ? "Đã tạo bài và ảnh, bài đã được tự động đăng" : "Đã tạo bài viết từ dữ liệu nghiên cứu và thêm ảnh bìa");
-
-      // Nếu auto-publish bật, bài đã được publish ngay trong automation-run => refresh
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       showError(err.message || "Không thể tạo bài và ảnh");
@@ -688,7 +712,7 @@ const AutomationWorkflow = () => {
         </div>
       </section>
 
-      {/* ... phần còn lại giữ nguyên (topics, bài chờ duyệt, lịch sử) ... */}
+      {/* Topics & Review & Scheduled sections */}
       <section className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-5 shadow-sm">
           <button
