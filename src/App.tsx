@@ -27,6 +27,7 @@ const AdminLogin = lazy(() => import("./pages/admin/Login"));
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
 const AdminEditor = lazy(() => import("./pages/admin/Editor"));
 const AdminAutomation = lazy(() => import("./pages/admin/Automation"));
+const AdminPreview = lazy(() => import("./pages/admin/Preview"));
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,7 @@ const App = () => {
               <Route path="/admin/editor" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminEditor /></Suspense></ProtectedRoute>} />
               <Route path="/admin/editor/:id" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminEditor /></Suspense></ProtectedRoute>} />
               <Route path="/admin/automation" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminAutomation /></Suspense></ProtectedRoute>} />
+              <Route path="/admin/preview/:articleId" element={<ProtectedRoute><Suspense fallback={<LoadingFallback />}><AdminPreview /></Suspense></ProtectedRoute>} />
               
               <Route path="*" element={<NotFound />} />
             </Routes>

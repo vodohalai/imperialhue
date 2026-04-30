@@ -15,6 +15,7 @@ import {
   ExternalLink,
   XCircle,
   AlertTriangle,
+  Eye,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -679,15 +680,26 @@ const AutomationWorkflow = () => {
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-base font-black text-slate-900">Bài chờ duyệt</h3>
             {reviewItem?.article && (
-              <button
-                type="button"
-                onClick={handleDeleteReviewItem}
-                disabled={deleting}
-                className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-60"
-              >
-                {deleting ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-red-400/70 border-t-transparent" /> : <Trash2 className="h-3.5 w-3.5" />}
-                Xóa
-              </button>
+              <div className="flex gap-2">
+                <a
+                  href={`/admin/preview/${reviewItem.article.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-100"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Xem trước
+                </a>
+                <button
+                  type="button"
+                  onClick={handleDeleteReviewItem}
+                  disabled={deleting}
+                  className="inline-flex items-center gap-1 rounded-full bg-red-50 px-3 py-1.5 text-xs font-bold text-red-600 hover:bg-red-100 disabled:opacity-60"
+                >
+                  {deleting ? <span className="h-3 w-3 animate-spin rounded-full border-2 border-red-400/70 border-t-transparent" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Xóa
+                </button>
+              </div>
             )}
           </div>
 
