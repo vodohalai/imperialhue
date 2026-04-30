@@ -3,6 +3,8 @@ import {
   Bot,
   CalendarClock,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   History,
   PauseCircle,
@@ -62,6 +64,8 @@ const AutomationWorkflow = () => {
   const [workflowLogs, setWorkflowLogs] = useState<WorkflowLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [runningScheduler, setRunningScheduler] = useState(false);
+  const [topicsCollapsed, setTopicsCollapsed] = useState(false);
+  const [logsCollapsed, setLogsCollapsed] = useState(true);
   const { stats, lastActivity } = useAutomationStats(refreshTrigger);
 
   const fetchControl = async () => {
@@ -640,40 +644,49 @@ const AutomationWorkflow = () => {
 
       <section className="grid gap-4 xl:grid-cols-3">
         <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-5 shadow-sm">
-          <h3 className="text-base font-black text-slate-900">Chủ đề mới</h3>
-          <div className="mt-4 space-y-3">
-            {loadingQueues ? (
-              <p className="text-sm text-slate-500">Đang tải...</p>
-            ) : researchTopics.length === 0 ? (
-              <p className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">Chưa có chủ đề mới.</p>
-            ) : (
-              researchTopics.map((topic) => (
-                <div key={topic.id} className="rounded-2xl bg-[#fbfaf7] p-4">
-                  <p className="text-sm font-semibold text-slate-900">{topic.topic}</p>
-                  <p className="mt-1 text-xs text-slate-500">{topic.keyword}</p>
-                  {topic.research_notes && (
-                    <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-600">{topic.research_notes}</p>
-                  )}
-                  {Array.isArray(topic.source_urls) && topic.source_urls.length > 0 && (
-                    <div className="mt-3 space-y-2">
-                      {topic.source_urls.slice(0, 2).map((url) => (
-                        <a
-                          key={url}
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D9488]"
-                        >
-                          <ExternalLink className="h-3.5 w-3.5" />
-                          Nguồn tham khảo
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))
-            )}
-          </div>
+          <button
+            type="button"
+            onClick={() => setTopicsCollapsed(!topicsCollapsed)}
+            className="flex w-full items-center justify-between"
+          >
+            <h3 className="text-base font-black text-slate-900">Chủ đề mới</h3>
+            {topicsCollapsed ? <ChevronDown className="h-5 w-5 text-slate-400" /> : <ChevronUp className="h-5 w-5 text-slate-400" />}
+          </button>
+          {!topicsCollapsed && (
+            <div className="mt-4 space-y-3">
+              {loadingQueues ? (
+                <p className="text-sm text-slate-500">Đang tải...</p>
+              ) : researchTopics.length === 0 ? (
+                <p className="rounded-2xl bg-[#fbfaf7] px-4 py-3 text-sm text-slate-500">Chưa có chủ đề mới.</p>
+              ) : (
+                researchTopics.map((topic) => (
+                  <div key={topic.id} className="rounded-2xl bg-[#fbfaf7] p-4">
+                    <p className="text-sm font-semibold text-slate-900">{topic.topic}</p>
+                    <p className="mt-1 text-xs text-slate-500">{topic.keyword}</p>
+                    {topic.research_notes && (
+                      <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-600">{topic.research_notes}</p>
+                    )}
+                    {Array.isArray(topic.source_urls) && topic.source_urls.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {topic.source_urls.slice(0, 2).map((url) => (
+                          <a
+                            key={url}
+                            href={url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D9488]"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            Nguồn tham khảo
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         <div className="rounded-[2rem] border border-[#ece6dd] bg-white p-5 shadow-sm">
@@ -751,93 +764,100 @@ const AutomationWorkflow = () => {
 
       {/* ─── LỊCH SỬ HOẠT ĐỘNG ──────────────────────────────── */}
       <section className="rounded-[2.25rem] border border-[#ece6dd] bg-white p-5 shadow-sm sm:p-6">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f5f3ff] text-[#6366f1]">
+        <button
+          type="button"
+          onClick={() => setLogsCollapsed(!logsCollapsed)}
+          className="flex w-full items-center gap-3 text-left"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#f5f3ff] text-[#6366f1]">
             <History className="h-5 w-5" />
           </div>
-          <div>
+          <div className="flex-1">
             <h2 className="text-lg font-black text-slate-900">Lịch sử hoạt động</h2>
             <p className="text-xs text-slate-500">Các lần chạy gần đây của scheduler, research, write, generate-image</p>
           </div>
-        </div>
+          {logsCollapsed ? <ChevronDown className="h-5 w-5 text-slate-400" /> : <ChevronUp className="h-5 w-5 text-slate-400" />}
+        </button>
 
-        <div className="mt-5">
-          {loadingLogs ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-14 animate-pulse rounded-2xl bg-slate-100" />
-              ))}
-            </div>
-          ) : workflowLogs.length === 0 ? (
-            <div className="rounded-2xl bg-[#fbfaf7] px-5 py-8 text-center">
-              <AlertTriangle className="mx-auto h-8 w-8 text-slate-300" />
-              <p className="mt-3 text-sm font-semibold text-slate-400">Chưa có lịch sử hoạt động</p>
-              <p className="mt-1 text-xs text-slate-400">Nhấn nút "Chạy scheduler ngay" hoặc các nút automation để bắt đầu</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {workflowLogs.map((log) => {
-                const isSuccess = log.status === "success";
-                const isFailed = log.status === "failed";
-                const isSkipped = log.status === "skipped";
+        {!logsCollapsed && (
+          <div className="mt-5">
+            {loadingLogs ? (
+              <div className="space-y-2">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-14 animate-pulse rounded-2xl bg-slate-100" />
+                ))}
+              </div>
+            ) : workflowLogs.length === 0 ? (
+              <div className="rounded-2xl bg-[#fbfaf7] px-5 py-8 text-center">
+                <AlertTriangle className="mx-auto h-8 w-8 text-slate-300" />
+                <p className="mt-3 text-sm font-semibold text-slate-400">Chưa có lịch sử hoạt động</p>
+                <p className="mt-1 text-xs text-slate-400">Nhấn nút "Chạy scheduler ngay" hoặc các nút automation để bắt đầu</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {workflowLogs.map((log) => {
+                  const isSuccess = log.status === "success";
+                  const isFailed = log.status === "failed";
+                  const isSkipped = log.status === "skipped";
 
-                return (
-                  <div
-                    key={log.id}
-                    className={`flex items-start gap-4 rounded-2xl p-4 transition ${
-                      isFailed ? "bg-red-50" : isSkipped ? "bg-amber-50" : "bg-[#fbfaf7]"
-                    }`}
-                  >
-                    <div className="mt-0.5 shrink-0">
-                      {isSuccess && <CheckCircle2 className="h-5 w-5 text-teal-500" />}
-                      {isFailed && <XCircle className="h-5 w-5 text-red-500" />}
-                      {isSkipped && <AlertTriangle className="h-5 w-5 text-amber-500" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold uppercase tracking-[0.12em] ${
-                          log.action === "scheduler" ? "text-[#6366f1]" :
-                          log.action === "research" ? "text-[#f97316]" :
-                          log.action === "write" ? "text-[#0D9488]" :
-                          "text-[#2563eb]"
-                        }`}>
-                          {log.action}
-                        </span>
-                        {log.duration_ms != null && (
-                          <span className="text-xs text-slate-400">· {(log.duration_ms / 1000).toFixed(1)}s</span>
+                  return (
+                    <div
+                      key={log.id}
+                      className={`flex items-start gap-4 rounded-2xl p-4 transition ${
+                        isFailed ? "bg-red-50" : isSkipped ? "bg-amber-50" : "bg-[#fbfaf7]"
+                      }`}
+                    >
+                      <div className="mt-0.5 shrink-0">
+                        {isSuccess && <CheckCircle2 className="h-5 w-5 text-teal-500" />}
+                        {isFailed && <XCircle className="h-5 w-5 text-red-500" />}
+                        {isSkipped && <AlertTriangle className="h-5 w-5 text-amber-500" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-xs font-bold uppercase tracking-[0.12em] ${
+                            log.action === "scheduler" ? "text-[#6366f1]" :
+                            log.action === "research" ? "text-[#f97316]" :
+                            log.action === "write" ? "text-[#0D9488]" :
+                            "text-[#2563eb]"
+                          }`}>
+                            {log.action}
+                          </span>
+                          {log.duration_ms != null && (
+                            <span className="text-xs text-slate-400">· {(log.duration_ms / 1000).toFixed(1)}s</span>
+                          )}
+                        </div>
+                        <p className={`mt-0.5 text-sm ${isFailed ? "text-red-700 font-semibold" : "text-slate-700"}`}>
+                          {log.message || "(không có mô tả)"}
+                        </p>
+                        {log.details && typeof log.details === "object" && "published" in log.details && (
+                          <div className="mt-2 space-y-1">
+                            {Array.isArray(log.details.published) && (log.details.published as string[]).map((item: string, i: number) => (
+                              <p key={i} className="text-xs text-slate-500 pl-1 border-l-2 border-slate-200">
+                                {item}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                        {log.details && typeof log.details === "object" && "topics" in log.details && (
+                          <div className="mt-2 space-y-1">
+                            {Array.isArray(log.details.topics) && (log.details.topics as Array<{topic: string}>).map((t, i: number) => (
+                              <p key={i} className="text-xs text-slate-500 pl-1 border-l-2 border-orange-200">
+                                → {t.topic}
+                              </p>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      <p className={`mt-0.5 text-sm ${isFailed ? "text-red-700 font-semibold" : "text-slate-700"}`}>
-                        {log.message || "(không có mô tả)"}
-                      </p>
-                      {log.details && typeof log.details === "object" && "published" in log.details && (
-                        <div className="mt-2 space-y-1">
-                          {Array.isArray(log.details.published) && (log.details.published as string[]).map((item: string, i: number) => (
-                            <p key={i} className="text-xs text-slate-500 pl-1 border-l-2 border-slate-200">
-                              {item}
-                            </p>
-                          ))}
-                        </div>
-                      )}
-                      {log.details && typeof log.details === "object" && "topics" in log.details && (
-                        <div className="mt-2 space-y-1">
-                          {Array.isArray(log.details.topics) && (log.details.topics as Array<{topic: string}>).map((t, i: number) => (
-                            <p key={i} className="text-xs text-slate-500 pl-1 border-l-2 border-orange-200">
-                              → {t.topic}
-                            </p>
-                          ))}
-                        </div>
-                      )}
+                      <span className="shrink-0 text-xs text-slate-400">
+                        {new Date(log.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+                      </span>
                     </div>
-                    <span className="shrink-0 text-xs text-slate-400">
-                      {new Date(log.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );
