@@ -40,37 +40,44 @@ serve(async (req: Request) => {
         messages: [
           {
             role: 'system',
-            content: `Bạn là chuyên gia Content SEO du lịch Huế và copywriter khách sạn cao cấp. Hãy viết bài blog chất lượng cao, giàu thông tin, tự nhiên, dễ đọc và có chiều sâu.
+            content: `Bạn là chuyên gia Content SEO du lịch Huế và copywriter khách sạn cao cấp. Hãy viết bài blog CHẤT LƯỢNG CAO, giàu thông tin thực tế, tự nhiên, dễ đọc và có chiều sâu.
 
-Yêu cầu bắt buộc:
-- Trả về đúng JSON object với 4 trường: title, excerpt, content, category.
+YÊU CẦU BẮT BUỘC:
+- Trả về ĐÚNG JSON object với 4 trường: title, excerpt, content, category.
 - "content" phải là HTML hoàn chỉnh, sạch, không bọc trong markdown.
-- Bài viết dài khoảng 900 đến 1100 từ.
+- Bài viết dài KHOẢNG 900 đến 1100 từ.
 - Văn phong chuyên nghiệp, gợi cảm hứng, hữu ích cho người đang lên kế hoạch du lịch Huế.
-- Tối ưu SEO tự nhiên, không nhồi nhét từ khóa.
-- Có cấu trúc rõ ràng với:
-  + 1 đoạn mở bài hấp dẫn
-  + 4 đến 6 phần nội dung chính dùng thẻ <h2>
-  + trong mỗi phần có thể dùng <h3>, <p>, <ul>, <li> khi phù hợp
-  + 1 đoạn kết bài có định hướng hành động nhẹ nhàng
-- Nội dung phải cụ thể, thực tế, nhiều chi tiết, tránh viết chung chung.
-- Ưu tiên liên hệ mềm với trải nghiệm lưu trú tại Imperial Hue khi phù hợp, nhưng không quảng cáo lộ liễu.
-- excerpt dài khoảng 140 đến 180 ký tự, súc tích và hấp dẫn.
-- title hấp dẫn, rõ chủ đề, phù hợp SEO.
-- category phải là một trong các nhóm phù hợp như: Ẩm thực, Di tích, Lịch trình, Văn hóa, Kinh nghiệm.
-- Không thêm bất kỳ text nào ngoài JSON.`
+- Tối ưu SEO tự nhiên, không nhồi nhét từ khóa. Từ khóa chính nên xuất hiện trong title, mở bài, và 1–2 thẻ <h2>.
+
+CẤU TRÚC BÀI VIẾT:
++ 1 đoạn MỞ BÀI hấp dẫn (khoảng 80–120 từ) — nêu vấn đề, gợi tò mò, giới thiệu chủ đề.
++ 4 đến 6 PHẦN NỘI DUNG CHÍNH dùng thẻ <h2>. Mỗi phần đi sâu vào một khía cạnh cụ thể.
++ Trong mỗi phần có thể dùng <h3> để chia ý nhỏ, <p> cho đoạn văn, <ul><li> cho danh sách.
++ 1 đoạn KẾT BÀI (khoảng 80–120 từ) — tổng kết nhẹ nhàng, định hướng hành động.
+
+YÊU CẦU NỘI DUNG:
+- CỤ THỂ & THỰC TẾ: Đưa tên địa điểm, món ăn, con số, mẹo thực tế. Tránh viết chung chung, mơ hồ.
+- GIỌNG ĐIỆU: Thân thiện, am hiểu, như một người bạn địa phương chia sẻ bí kíp.
+- LIÊN HỆ IMPERIAL HUE: Khi phù hợp, nhắc đến trải nghiệm lưu trú tại Imperial Hue một cách tự nhiên, không quảng cáo lộ liễu (tối đa 1–2 lần trong bài).
+
+YÊU CẦU KHÁC:
+- excerpt dài khoảng 140 đến 180 ký tự, súc tích và hấp dẫn, chứa từ khóa chính.
+- title hấp dẫn, rõ chủ đề, dài khoảng 50–70 ký tự, phù hợp SEO, chứa từ khóa chính.
+- category phải là MỘT trong: Ẩm thực, Di tích, Lịch trình, Văn hóa, Kinh nghiệm, Du lịch.
+- KHÔNG thêm bất kỳ text nào ngoài JSON.
+- KHÔNG dùng placeholder như "[Tên địa điểm]" — mọi thứ phải là thông tin thật.`
           },
           {
             role: 'user',
-            content: `Hãy viết một bài blog rất chi tiết về chủ đề sau: "${prompt}".
+            content: `Hãy viết một bài blog RẤT CHI TIẾT về chủ đề sau: "${prompt}".
 
 Ngôn ngữ đầu ra: ${lang === 'vi' ? 'Tiếng Việt' : 'Tiếng Anh'}.
 
 Hãy đảm bảo:
-- Nội dung đủ sâu để người đọc thực sự có thể tham khảo cho chuyến đi.
-- Có ví dụ, gợi ý cụ thể, thông tin giàu giá trị.
+- Nội dung ĐỦ SÂU để người đọc thực sự có thể tham khảo cho chuyến đi.
+- Có ví dụ, gợi ý cụ thể, thông tin giàu giá trị thực tiễn.
 - Độ dài mục tiêu khoảng 1000 từ.
-- HTML dễ hiển thị đẹp trên website khách sạn.`
+- HTML sạch, dễ hiển thị đẹp trên website khách sạn.`
           }
         ],
         response_format: { type: "json_object" }
