@@ -1,0 +1,1 @@
+ALTER TABLE public.seo_topics ADD COLUMN IF NOT EXISTS research_notes text

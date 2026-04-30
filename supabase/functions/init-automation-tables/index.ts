@@ -28,6 +28,9 @@ serve(async (req) => {
           category text,
           priority_score integer DEFAULT 0,
           status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'used', 'rejected')),
+          research_notes text,
+          source_urls text[],
+          researched_at timestamp with time zone,
           created_at timestamp with time zone DEFAULT now(),
           updated_at timestamp with time zone DEFAULT now()
         )

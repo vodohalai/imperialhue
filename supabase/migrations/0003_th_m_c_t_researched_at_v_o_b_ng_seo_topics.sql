@@ -1,0 +1,1 @@
+ALTER TABLE public.seo_topics ADD COLUMN IF NOT EXISTS researched_at timestamp with time zone
