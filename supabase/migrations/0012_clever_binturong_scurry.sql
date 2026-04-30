@@ -1,1 +1,0 @@
-SELECT id, slug, title, status, category FROM articles WHERE title ILIKE '%Huế%' ORDER BY created_at DESC LIMIT 10;
