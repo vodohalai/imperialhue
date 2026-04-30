@@ -91,6 +91,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     )
 
+    const deepseekKey = Deno.env.get("DEEPSEEK_API_KEY")
     const openaiKey = Deno.env.get("OPENAI_API_KEY")
     const tavilyKey = Deno.env.get("TAVILY_API_KEY")
 
@@ -99,11 +100,11 @@ serve(async (req) => {
       const actionStart = Date.now()
       console.log("[automation-run] Starting live research with Tavily")
 
-      if (!openaiKey) {
-        console.error("[automation-run] Missing OPENAI_API_KEY for research")
-        await writeLog(supabaseAdmin, "research", "failed", "Thiếu OPENAI_API_KEY", null, Date.now() - actionStart)
+      if (!deepseekKey) {
+        console.error("[automation-run] Missing DEEPSEEK_API_KEY for research")
+        await writeLog(supabaseAdmin, "research", "failed", "Thiếu DEEPSEEK_API_KEY", null, Date.now() - actionStart)
         return new Response(
-          JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
+          JSON.stringify({ success: false, message: "Missing DEEPSEEK_API_KEY" }),
           { status: 500, headers: jsonHeaders },
         )
       }
@@ -142,14 +143,14 @@ serve(async (req) => {
           }
         })
 
-      const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      const aiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${openaiKey}`,
+          Authorization: `Bearer ${deepseekKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "deepseek-v4-flash",
           messages: [
             {
               role: "system",
@@ -168,12 +169,12 @@ serve(async (req) => {
       const aiData = await aiResponse.json()
 
       if (!aiResponse.ok) {
-        console.error("[automation-run] OpenAI research failed", { error: aiData })
-        await writeLog(supabaseAdmin, "research", "failed", aiData?.error?.message || "OpenAI research failed", null, Date.now() - actionStart)
+        console.error("[automation-run] DeepSeek research failed", { error: aiData })
+        await writeLog(supabaseAdmin, "research", "failed", aiData?.error?.message || "DeepSeek research failed", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({
             success: false,
-            message: aiData?.error?.message || "OpenAI research failed",
+            message: aiData?.error?.message || "DeepSeek research failed",
           }),
           { status: aiResponse.status, headers: jsonHeaders },
         )
@@ -247,11 +248,11 @@ serve(async (req) => {
     if (action === "write") {
       const actionStart = Date.now()
 
-      if (!openaiKey) {
-        console.error("[automation-run] Missing OPENAI_API_KEY for write")
-        await writeLog(supabaseAdmin, "write", "failed", "Thiếu OPENAI_API_KEY", null, Date.now() - actionStart)
+      if (!deepseekKey) {
+        console.error("[automation-run] Missing DEEPSEEK_API_KEY for write")
+        await writeLog(supabaseAdmin, "write", "failed", "Thiếu DEEPSEEK_API_KEY", null, Date.now() - actionStart)
         return new Response(
-          JSON.stringify({ success: false, message: "Missing OPENAI_API_KEY" }),
+          JSON.stringify({ success: false, message: "Missing DEEPSEEK_API_KEY" }),
           { status: 500, headers: jsonHeaders },
         )
       }
@@ -296,14 +297,14 @@ ${topic.research_notes || "Không có ghi chú nghiên cứu."}
 Nguồn tham khảo:
 ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
-      const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      const aiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${openaiKey}`,
+          Authorization: `Bearer ${deepseekKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
+          model: "deepseek-v4-flash",
           messages: [
             {
               role: "system",
@@ -319,12 +320,12 @@ ${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
       const aiData = await aiResponse.json()
 
       if (!aiResponse.ok) {
-        console.error("[automation-run] OpenAI write failed", { error: aiData })
-        await writeLog(supabaseAdmin, "write", "failed", aiData?.error?.message || "OpenAI write failed", null, Date.now() - actionStart)
+        console.error("[automation-run] DeepSeek write failed", { error: aiData })
+        await writeLog(supabaseAdmin, "write", "failed", aiData?.error?.message || "DeepSeek write failed", null, Date.now() - actionStart)
         return new Response(
           JSON.stringify({
             success: false,
-            message: aiData?.error?.message || "OpenAI write failed",
+            message: aiData?.error?.message || "DeepSeek write failed",
           }),
           { status: aiResponse.status, headers: jsonHeaders },
         )

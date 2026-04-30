@@ -12,18 +12,18 @@ serve(async (req) => {
 
   try {
     const { behaviors, current_page } = await req.json()
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
 
     console.log("[analyze-intent] Analyzing behaviors for page:", current_page)
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer \${apiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o', // Sử dụng GPT-4o cho độ chính xác cao nhất về tâm lý học hành vi
+        model: 'deepseek-v4-flash',
         messages: [
           {
             role: 'system',
@@ -31,7 +31,7 @@ serve(async (req) => {
           },
           {
             role: 'user',
-            content: `Dữ liệu hành vi: \${JSON.stringify(behaviors)}. Trang hiện tại: \${current_page}`
+            content: `Dữ liệu hành vi: ${JSON.stringify(behaviors)}. Trang hiện tại: ${current_page}`
           }
         ],
         response_format: { type: "json_object" }

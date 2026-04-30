@@ -17,26 +17,26 @@ serve(async (req: Request) => {
 
   try {
     const { prompt, lang = 'vi' } = await req.json()
-    const apiKey = Deno.env.get('OPENAI_API_KEY')
+    const apiKey = Deno.env.get('DEEPSEEK_API_KEY')
 
     if (!apiKey) {
-      console.error("[generate-article] Error: OPENAI_API_KEY is not defined in Supabase Secrets");
+      console.error("[generate-article] Error: DEEPSEEK_API_KEY is not defined in Supabase Secrets");
       return new Response(
-        JSON.stringify({ error: "Chưa cấu hình OPENAI_API_KEY trong Supabase Secrets." }), 
+        JSON.stringify({ error: "Chưa cấu hình DEEPSEEK_API_KEY trong Supabase Secrets." }), 
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log("[generate-article] Calling OpenAI API...", { prompt });
+    console.log("[generate-article] Calling DeepSeek API...", { prompt });
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'deepseek-v4-flash',
         messages: [
           {
             role: 'system',
@@ -80,14 +80,14 @@ Hãy đảm bảo:
     const data = await response.json()
 
     if (!response.ok) {
-      console.error("[generate-article] OpenAI API returned error:", data.error);
+      console.error("[generate-article] DeepSeek API returned error:", data.error);
       return new Response(
-        JSON.stringify({ error: data.error?.message || "Lỗi từ OpenAI API" }), 
+        JSON.stringify({ error: data.error?.message || "Lỗi từ DeepSeek API" }), 
         { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log("[generate-article] OpenAI response received successfully");
+    console.log("[generate-article] DeepSeek response received successfully");
     const result = JSON.parse(data.choices[0].message.content)
 
     return new Response(JSON.stringify(result), {
