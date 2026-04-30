@@ -187,6 +187,14 @@ const AutomationWorkflow = () => {
       const { data, error } = await supabase.functions.invoke("workflow-scheduler");
       if (error) {
         showError("Lỗi chạy scheduler: " + error.message);
+      } else if (data?.mode === "pipeline") {
+        const successCount = data?.pipeline_results?.length || 0;
+        const errorCount = data?.pipeline_errors?.length || 0;
+        if (errorCount === 0) {
+          showSuccess(`Pipeline hoàn tất: ${successCount} bước thành công`);
+        } else {
+          showError(`Pipeline: ${successCount} bước OK, ${errorCount} bước lỗi`);
+        }
       } else {
         const published = data?.actions?.length || 0;
         if (published > 0) {
