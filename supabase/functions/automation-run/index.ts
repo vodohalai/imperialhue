@@ -12,6 +12,42 @@ const jsonHeaders = {
   "Content-Type": "application/json",
 }
 
+const buildSlug = (value: string) =>
+  value
+    ?.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/--+/g, "-")
+    .trim() || `bai-viet-${Date.now()}`
+
+const fetchSearchResults = async (apiKey: string, query: string) => {
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      api_key: apiKey,
+      query,
+      search_depth: "advanced",
+      topic: "general",
+      max_results: 5,
+      include_answer: true,
+      include_raw_content: false,
+    }),
+  })
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data?.detail || data?.error || "Tavily search failed")
+  }
+
+  return data
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders })
@@ -37,6 +73,7 @@ serve(async (req) => {
     )
 
     const openaiKey = Deno.env.get("OPENAI_API_KEY")
+    const tavilyKey = Deno.env.get("TAVILY_API_KEY")
 
     if (action === "research") {
       if (!openaiKey) {
@@ -47,7 +84,40 @@ serve(async (req) => {
         )
       }
 
-      console.log("[automation-run] Researching new SEO topics...")
+      if (!tavilyKey) {
+        console.error("[automation-run] Missing TAVILY_API_KEY for research")
+        return new Response(
+          JSON.stringify({ success: false, message: "Missing TAVILY_API_KEY" }),
+          { status: 500, headers: jsonHeaders },
+        )
+      }
+
+      console.log("[automation-run] Starting live research with Tavily")
+
+      const trendQueries = [
+        "xu hướng du lịch Huế mới nhất 2026",
+        "điểm đến mới nổi ở Huế 2026",
+        "ẩm thực Huế nổi bật gần đây",
+      ]
+
+      const searchPayloads = await Promise.all(
+        trendQueries.map((query) => fetchSearchResults(tavilyKey, query)),
+      )
+
+      const searchContext = searchPayloads
+        .map((payload, index) => {
+          const items = (payload.results || []).map((item: any) => ({
+            title: item.title,
+            url: item.url,
+            content: item.content,
+          }))
+
+          return {
+            query: trendQueries[index],
+            answer: payload.answer || "",
+            results: items,
+          }
+        })
 
       const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -61,7 +131,11 @@ serve(async (req) => {
             {
               role: "system",
               content:
-                'Bạn là chuyên gia SEO du lịch Huế. Hãy tạo 2 chủ đề blog mới về du lịch Huế, mỗi chủ đề là một object JSON với các trường: topic, keyword, search_intent, category, priority_score. Trả về object JSON có key "topics" chứa array 2 object.',
+                'Bạn là chuyên gia SEO du lịch Huế theo thời gian thực. Dựa trên dữ liệu tìm kiếm web mới nhất, hãy tạo đúng JSON object với key "topics" là mảng gồm 2 object. Mỗi object phải có: topic, keyword, search_intent, category, priority_score, research_notes, source_urls. research_notes phải tóm tắt insight mới nhất, hữu ích cho bước viết bài sau này. source_urls là mảng URL nguồn tham khảo thực tế.',
+            },
+            {
+              role: "user",
+              content: `Dưới đây là dữ liệu nghiên cứu thời gian thực từ Tavily:\n${JSON.stringify(searchContext)}`,
             },
           ],
           response_format: { type: "json_object" },
@@ -108,6 +182,9 @@ serve(async (req) => {
               search_intent: topic.search_intent || "information",
               category: topic.category || "Du lịch",
               priority_score: topic.priority_score || 50,
+              research_notes: topic.research_notes || "",
+              source_urls: topic.source_urls || [],
+              researched_at: new Date().toISOString(),
               status: "pending",
             },
           ])
@@ -147,6 +224,7 @@ serve(async (req) => {
         .from("seo_topics")
         .select("*")
         .eq("status", "pending")
+        .order("researched_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle()
@@ -173,7 +251,12 @@ serve(async (req) => {
         keyword: topic.keyword,
       })
 
-      const prompt = `Viết một bài blog du lịch Huế với chủ đề: "${topic.topic}". Từ khóa chính: "${topic.keyword}".`
+      const prompt = `Viết một bài blog du lịch Huế với chủ đề: "${topic.topic}". Từ khóa chính: "${topic.keyword}".
+Dữ liệu nghiên cứu mới nhất:
+${topic.research_notes || "Không có ghi chú nghiên cứu."}
+
+Nguồn tham khảo:
+${Array.isArray(topic.source_urls) ? topic.source_urls.join("\n") : ""}`
 
       const aiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
@@ -187,7 +270,7 @@ serve(async (req) => {
             {
               role: "system",
               content:
-                'Bạn là chuyên gia Content SEO du lịch Huế. Trả về JSON object gồm: title, excerpt, content, category. "content" phải là HTML.',
+                'Bạn là chuyên gia Content SEO du lịch Huế. Dựa trên dữ liệu nghiên cứu đã được cung cấp, hãy viết bài cập nhật, cụ thể, giàu giá trị. Trả về JSON object gồm: title, excerpt, content, category. "content" phải là HTML.',
             },
             { role: "user", content: prompt },
           ],
@@ -238,15 +321,11 @@ serve(async (req) => {
         )
       }
 
-      const slug =
-        generated.title
-          ?.toLowerCase()
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .replace(/[^\w\s-]/g, "")
-          .replace(/\s+/g, "-")
-          .replace(/--+/g, "-")
-          .trim() || `bai-viet-${Date.now()}`
+      const slug = buildSlug(generated.title)
+
+      const sourceBlock = Array.isArray(topic.source_urls) && topic.source_urls.length > 0
+        ? `<h2>Nguồn tham khảo</h2><ul>${topic.source_urls.map((url: string) => `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></li>`).join("")}</ul>`
+        : ""
 
       const { data: article, error: articleError } = await supabaseAdmin
         .from("articles")
@@ -254,7 +333,7 @@ serve(async (req) => {
           {
             slug,
             title: generated.title,
-            content: generated.content,
+            content: `${generated.content}${sourceBlock}`,
             excerpt: generated.excerpt || "",
             category: generated.category || "Du lịch",
             status: "draft",
@@ -290,11 +369,6 @@ serve(async (req) => {
           { status: 500, headers: jsonHeaders },
         )
       }
-
-      console.log("[automation-run] Linked ai_content_job to article", {
-        jobId: job.id,
-        articleId: article.id,
-      })
 
       const { error: topicUpdateError } = await supabaseAdmin
         .from("seo_topics")
@@ -434,11 +508,6 @@ serve(async (req) => {
       })
 
       if (job.article_id) {
-        console.log("[automation-run] Attempting to update article image_url", {
-          articleId: job.article_id,
-          imageUrlType: directUrl ? "url" : "data-url",
-        })
-
         const { error: updateArticleError } = await supabaseAdmin
           .from("articles")
           .update({
@@ -457,29 +526,6 @@ serve(async (req) => {
             { status: 500, headers: jsonHeaders },
           )
         }
-
-        const { data: updatedArticle, error: verifyArticleError } = await supabaseAdmin
-          .from("articles")
-          .select("id,image_url,updated_at")
-          .eq("id", job.article_id)
-          .maybeSingle()
-
-        if (verifyArticleError) {
-          console.error("[automation-run] Failed to verify updated article", {
-            articleId: job.article_id,
-            message: verifyArticleError.message,
-          })
-        } else {
-          console.log("[automation-run] Verified article after image update", {
-            id: updatedArticle?.id,
-            hasImageUrl: Boolean(updatedArticle?.image_url),
-            imageUrlPreview: updatedArticle?.image_url?.slice?.(0, 80),
-          })
-        }
-      } else {
-        console.error("[automation-run] Job has no article_id, so article image cannot be updated", {
-          jobId: job.id,
-        })
       }
 
       return new Response(

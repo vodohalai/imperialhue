@@ -10,6 +10,7 @@ import {
   Sparkles,
   Trash2,
   Wand2,
+  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess } from "@/utils/toast";
@@ -95,6 +96,7 @@ const AutomationWorkflow = () => {
         .from("seo_topics")
         .select("*")
         .eq("status", "pending")
+        .order("researched_at", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false })
         .limit(5),
       supabase
@@ -250,7 +252,7 @@ const AutomationWorkflow = () => {
     setRunningAction("research");
     try {
       const data = await invokeAutomation("research");
-      showSuccess(`Đã tạo ${data.topics?.length || 0} chủ đề mới`);
+      showSuccess(`Đã nghiên cứu và tạo ${data.topics?.length || 0} chủ đề mới`);
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       showError(err.message || "Không thể nghiên cứu chủ đề");
@@ -264,7 +266,7 @@ const AutomationWorkflow = () => {
     try {
       await invokeAutomation("write");
       await invokeAutomation("generate-image");
-      showSuccess("Đã tạo bài viết và ảnh bìa");
+      showSuccess("Đã tạo bài viết từ dữ liệu nghiên cứu và thêm ảnh bìa");
       setRefreshTrigger((prev) => prev + 1);
     } catch (err: any) {
       showError(err.message || "Không thể tạo bài và ảnh");
@@ -385,7 +387,7 @@ const AutomationWorkflow = () => {
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#f97316]">Automation</p>
             <h2 className="mt-2 text-2xl font-black text-slate-900">Bảng điều khiển gọn</h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              Chỉ giữ trạng thái chính, 3 thao tác quan trọng và hàng chờ nội dung để bạn xử lý nhanh hơn.
+              Chủ đề sẽ được nghiên cứu thời gian thực từ web trước, sau đó mới dùng để viết bài.
             </p>
           </div>
 
@@ -457,7 +459,7 @@ const AutomationWorkflow = () => {
           </div>
           <h3 className="mt-4 text-lg font-black text-slate-900">Nghiên cứu chủ đề</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Tạo nhanh các chủ đề SEO mới để đưa vào hàng chờ viết bài.
+            AI tìm thông tin mới nhất từ web qua Tavily, tổng hợp insight và lưu nguồn tham khảo.
           </p>
           <p className="mt-4 text-sm font-semibold text-slate-500">{stats.pendingTopics} chủ đề đang chờ</p>
           <button
@@ -467,7 +469,7 @@ const AutomationWorkflow = () => {
             className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-[#f97316] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#ea6a0f] disabled:opacity-60"
           >
             {runningAction === "research" ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/70 border-t-transparent" /> : <Search className="h-4 w-4" />}
-            Tạo chủ đề mới
+            Nghiên cứu thời gian thực
           </button>
         </div>
 
@@ -477,7 +479,7 @@ const AutomationWorkflow = () => {
           </div>
           <h3 className="mt-4 text-lg font-black text-slate-900">Tạo bài + ảnh</h3>
           <p className="mt-2 text-sm leading-6 text-slate-600">
-            Viết một bài AI hoàn chỉnh và tạo luôn ảnh bìa để chuyển sang bước duyệt.
+            AI lấy chính dữ liệu nghiên cứu đã lưu để viết bài cập nhật hơn rồi tạo ảnh bìa.
           </p>
           <p className="mt-4 text-sm font-semibold text-slate-500">{stats.draftsCreated} bài AI hiện có</p>
           <button
@@ -525,6 +527,25 @@ const AutomationWorkflow = () => {
                 <div key={topic.id} className="rounded-2xl bg-[#fbfaf7] p-4">
                   <p className="text-sm font-semibold text-slate-900">{topic.topic}</p>
                   <p className="mt-1 text-xs text-slate-500">{topic.keyword}</p>
+                  {topic.research_notes && (
+                    <p className="mt-3 line-clamp-4 text-xs leading-5 text-slate-600">{topic.research_notes}</p>
+                  )}
+                  {Array.isArray(topic.source_urls) && topic.source_urls.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {topic.source_urls.slice(0, 2).map((url) => (
+                        <a
+                          key={url}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0D9488]"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          Nguồn tham khảo
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))
             )}

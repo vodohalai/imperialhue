@@ -23,7 +23,11 @@ export interface SeoTopic {
   category: string;
   priority_score: number;
   status: 'pending' | 'used' | 'rejected';
+  research_notes?: string | null;
+  source_urls?: string[] | null;
+  researched_at?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface AiContentJob {
