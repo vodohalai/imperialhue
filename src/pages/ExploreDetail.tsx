@@ -115,7 +115,7 @@ const ExploreDetail = () => {
               </div>
 
               <div
-                className="prose prose-slate max-w-none prose-h2:mb-5 prose-h2:mt-10 prose-h2:text-2xl prose-h2:font-black prose-h2:text-slate-900 prose-p:mb-6 prose-p:text-lg prose-p:leading-8 prose-p:text-slate-600 prose-ul:mb-6 prose-ul:list-disc prose-ul:pl-6 prose-li:mb-2 prose-li:text-slate-600"
+                className="article-content prose prose-slate max-w-none"
                 dangerouslySetInnerHTML={{ __html: article.content }}
               />
 

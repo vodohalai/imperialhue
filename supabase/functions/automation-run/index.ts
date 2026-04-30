@@ -200,7 +200,7 @@ serve(async (req) => {
             {
               role: "system",
               content:
-                'Bạn là chuyên gia SEO du lịch Huế theo thời gian thực. Dựa trên dữ liệu tìm kiếm web mới nhất, hãy tạo đúng JSON object với key "topics" là mảng gồm 2 object.\n\nMỗi object phải có:\n- topic: tiêu đề chủ đề hấp dẫn, rõ ràng (vd: "Khám phá 5 quán bún bò Huế ngon nhất lòng phố cổ")\n- keyword: từ khóa chính SEO (vd: "bún bò Huế ngon")\n- search_intent: một trong "information", "commercial", "transactional", "navigational"\n- category: một trong "Ẩm thực", "Di tích", "Lịch trình", "Văn hóa", "Kinh nghiệm", "Du lịch"\n- priority_score: số 0-100 đánh giá độ ưu tiên dựa trên xu hướng và lượng tìm kiếm\n- research_notes: PHẢI LÀ BẢN TÓM TẮT CHI TIẾT (300-500 từ) bao gồm:\n  + Xu hướng/sự kiện mới nhất liên quan đến chủ đề\n  + 3-5 thông tin/fact cụ thể có thể dùng trong bài (tên địa điểm, món ăn, giá cả, thời gian, mẹo...)\n  + Góc nhìn độc đáo hoặc insight mà bài viết nên khai thác\n  + Đối tượng độc giả phù hợp\n- source_urls: mảng URL nguồn tham khảo thực tế (ít nhất 2 URL)',
+                'Bạn là chuyên gia SEO du lịch Huế theo thời gian thực. Dựa trên dữ liệu tìm kiếm web mới nhất, hãy tạo đúng JSON object với key "topics" là mảng gồm 2 object.\n\nMỗi object phải có:\n- topic: tiêu đề chủ đề hấp dẫn, rõ ràng (vd: "Khám phá 5 quán bún bò Huế ngon nhất lòng phố cổ")\n- keyword: từ khóa chính SEO (vd: "bún bò Huế ngon")\n- search_intent: một trong "information", "commercial", "transactional", "navigational"\n- category: một trong "Ẩm thực", "Di tích", "Lịch trình", "Văn hóa", "Kinh nghiệm", "Du lịch"\n- priority_score: số 0-100 đánh giá độ ưu tiên dựa trên xu hướng và lượng tìm kiếm\n- research_notes: PHẢI LÀ BẢN TÓM TẮT CHI TIẾT (400-600 từ) bao gồm:\n  + Xu hướng/sự kiện mới nhất liên quan đến chủ đề\n  + 5-8 thông tin/fact cụ thể có thể dùng trong bài (tên địa điểm, món ăn, giá cả, thời gian, mẹo thực tế, con số...)\n  + Góc nhìn độc đáo hoặc insight mà bài viết nên khai thác\n  + Đối tượng độc giả phù hợp\n  + Gợi ý 2-3 tiêu đề phụ (H2) cho bài viết\n- source_urls: mảng URL nguồn tham khảo thực tế (ít nhất 2 URL)',
             },
             {
               role: "user",
@@ -338,23 +338,22 @@ serve(async (req) => {
       const categoryHint = topic.category || "Du lịch"
       const searchIntent = topic.search_intent || "information"
 
-      const prompt = `Hãy viết một bài blog du lịch Huế thật chi tiết và hữu ích.
+      const prompt = `Hãy viết một bài blog du lịch Huế THẬT CHI TIẾT, HẤP DẪN và HỮU ÍCH cho người đọc.
 
+═══════════════════════════════
 CHỦ ĐỀ: "${topic.topic}"
 TỪ KHÓA CHÍNH: "${topic.keyword}"
-NHÓM CHỦ ĐỀ: ${categoryHint}
-MỤC ĐÍCH TÌM KIẾM CỦA NGƯỜI DÙNG: ${searchIntent}
-
+NHÓM: ${categoryHint}
+MỤC ĐÍCH TÌM KIẾM: ${searchIntent}
 ═══════════════════════════════
-DỮ LIỆU NGHIÊN CỨU THỜI GIAN THỰC (hãy tận dụng tối đa):
+
+DỮ LIỆU NGHIÊN CỨU THỜI GIAN THỰC — ĐÂY LÀ "NGUYÊN LIỆU" CHÍNH CỦA BẠN:
 ${topic.research_notes || "Không có ghi chú nghiên cứu."}
-═══════════════════════════════
-
-NGUỒN THAM KHẢO (dùng để lấy số liệu, dẫn chứng cụ thể):
-${Array.isArray(topic.source_urls) && topic.source_urls.length > 0 ? topic.source_urls.map((url: string, i: number) => `${i + 1}. ${url}`).join("\n") : "Không có nguồn tham khảo."}
 
 LƯU Ý QUAN TRỌNG:
-- Độ dài mục tiêu: 900–1100 từ.
+- Dùng dữ liệu nghiên cứu để viết bài — đó là thông tin mới nhất từ web.
+- Độ dài: 900–1200 từ.
+- TUYỆT ĐỐI KHÔNG chèn link hay URL vào nội dung.
 - Ngôn ngữ: Tiếng Việt.`
 
       const aiResponse = await fetch("https://api.deepseek.com/v1/chat/completions", {
@@ -369,7 +368,7 @@ LƯU Ý QUAN TRỌNG:
             {
               role: "system",
               content:
-                'Bạn là chuyên gia Content SEO du lịch Huế và copywriter khách sạn cao cấp. Hãy viết bài blog CHẤT LƯỢNG CAO, giàu thông tin thực tế, tự nhiên, dễ đọc và có chiều sâu — dựa trên dữ liệu nghiên cứu thời gian thực được cung cấp.\n\nYÊU CẦU BẮT BUỘC:\n- Trả về ĐÚNG JSON object với 4 trường: title, excerpt, content, category.\n- "content" phải là HTML hoàn chỉnh, sạch, không bọc trong markdown.\n- Bài viết dài KHOẢNG 900 đến 1100 từ.\n- Văn phong chuyên nghiệp, gợi cảm hứng, hữu ích cho người đang lên kế hoạch du lịch Huế.\n- Tối ưu SEO tự nhiên, không nhồi nhét từ khóa. Từ khóa chính nên xuất hiện trong title, mở bài, và 1–2 thẻ <h2>.\n\nCẤU TRÚC BÀI VIẾT:\n+ 1 đoạn MỞ BÀI hấp dẫn (khoảng 80–120 từ) — nêu vấn đề, gợi tò mò, giới thiệu chủ đề.\n+ 4 đến 6 PHẦN NỘI DUNG CHÍNH dùng thẻ <h2>. Mỗi phần đi sâu vào một khía cạnh cụ thể.\n+ Trong mỗi phần có thể dùng <h3> để chia ý nhỏ, <p> cho đoạn văn, <ul><li> cho danh sách.\n+ 1 đoạn KẾT BÀI (khoảng 80–120 từ) — tổng kết nhẹ nhàng, định hướng hành động, có thể liên hệ mềm với Imperial Hue.\n\nYÊU CẦU NỘI DUNG:\n- CỤ THỂ & THỰC TẾ: Đưa tên địa điểm, món ăn, con số, mẹo thực tế. Tránh viết chung chung, mơ hồ.\n- TẬN DỤNG DỮ LIỆU NGHIÊN CỨU: Dữ liệu nghiên cứu thời gian thực là "xương sống" của bài viết. Hãy dùng insight, số liệu, xu hướng từ đó.\n- LIÊN HỆ IMPERIAL HUE: Khi phù hợp, nhắc đến trải nghiệm lưu trú tại Imperial Hue một cách tự nhiên, không quảng cáo lộ liễu (tối đa 1–2 lần trong bài).\n- GIỌNG ĐIỆU: Thân thiện, am hiểu, như một người bạn địa phương chia sẻ bí kíp.\n\nYÊU CẦU KHÁC:\n- excerpt dài khoảng 140 đến 180 ký tự, súc tích và hấp dẫn, chứa từ khóa chính.\n- title hấp dẫn, rõ chủ đề, dài khoảng 50–70 ký tự, phù hợp SEO, chứa từ khóa chính.\n- category phải là MỘT trong: Ẩm thực, Di tích, Lịch trình, Văn hóa, Kinh nghiệm, Du lịch.\n- KHÔNG thêm bất kỳ text nào ngoài JSON.\n- KHÔNG dùng placeholder như "[Tên địa điểm]" — mọi thứ phải là thông tin thật.',
+                'Bạn là chuyên gia Content SEO du lịch Huế và copywriter khách sạn cao cấp với 10 năm kinh nghiệm. Bài viết của bạn phải khiến người đọc KHÔNG THỂ RỜI MẮT.\n\n═══ YÊU CẦU ĐẦU RA ═══\n- Trả về ĐÚNG JSON object: { title, excerpt, content, category }\n- "content" là HTML thuần (không markdown, không <code>, không <pre>)\n- Độ dài: 900–1200 từ\n- KHÔNG thêm text nào ngoài JSON\n\n═══ CẤU TRÚC HTML (PHẢI CÓ KHOẢNG CÁCH RÕ RÀNG) ═══\n- MỞ ĐẦU: 1 thẻ <p> hấp dẫn, gây tò mò\n- Mỗi phần dùng <h2 style="margin-top:2.5rem; margin-bottom:1rem; font-size:1.5rem; font-weight:800; color:#0f172a">...</h2>\n- Mỗi <h3 style="margin-top:1.5rem; margin-bottom:0.75rem; font-size:1.15rem; font-weight:700; color:#1e293b">...</h3>\n- Mỗi <p style="margin-bottom:1.25rem; font-size:1.05rem; line-height:1.85; color:#475569">...</p>\n- Mỗi <ul style="margin-bottom:1.25rem; padding-left:1.5rem"> với <li style="margin-bottom:0.5rem; font-size:1.05rem; line-height:1.75; color:#475569">...</li>\n- KHÔNG dùng <br/> để tạo khoảng cách — dùng margin CSS\n- TUYỆT ĐỐI KHÔNG thêm link hay URL\n\n═══ KỸ THUẬT VIẾT LÔI CUỐN ═══\nMỞ BÀI (100–150 từ): Bắt đầu bằng câu hỏi tu từ, sự thật thú vị, hoặc khung cảnh sống động. KHÔNG mở bài bằng "Huế là..." hay "Chào mừng...". Phải khiến người đọc TÒ MÒ ngay câu đầu.\n\nTHÂN BÀI (4–6 phần <h2>): Mỗi phần là một "câu chuyện nhỏ" — có bối cảnh, chi tiết cụ thể, giá trị thực. Dùng SỐ LIỆU, TÊN RIÊNG, ĐỊA CHỈ, GIÁ CẢ, MẸO CÁ NHÂN. Viết như đang kể cho bạn thân.\n\nKẾT BÀI (80–120 từ): Tổng kết tự nhiên, gợi mở hành động. Có thể liên hệ nhẹ đến Imperial Hue (1 câu).\n\nGIỌNG ĐIỆU: Như một người bạn Huế sành sỏi thì thầm bí mật — ấm áp, tinh tế, thỉnh thoảng hài hước. Dùng câu ngắn xen câu dài. Đoạn không quá 4 câu.\n\n═══ CHẤT LƯỢNG NỘI DUNG ═══\n- MỌI THÔNG TIN phải THẬT và CỤ THỂ. Không placeholder. Viết "quán Bún Bò Huế Bà Tuyết, 47 Nguyễn Công Trứ" chứ không phải "một quán ăn nổi tiếng".\n- Tận dụng TRIỆT ĐỂ dữ liệu nghiên cứu — đó là nguyên liệu chính.\n- Nhắc Imperial Hue tối đa 2 lần, thật tự nhiên.\n\n═══ SEO ═══\n- Từ khóa chính trong: title, excerpt, mở bài, 1–2 thẻ <h2>, kết bài\n- Title: 50–65 ký tự, gây tò mò, chứa từ khóa chính\n- Excerpt: 140–170 ký tự, tóm lược giá trị, chứa từ khóa chính\n- Category: MỘT trong [Ẩm thực, Di tích, Lịch trình, Văn hóa, Kinh nghiệm, Du lịch]',
             },
             { role: "user", content: prompt },
           ],
@@ -425,17 +424,13 @@ LƯU Ý QUAN TRỌNG:
 
       const slug = buildSlug(generated.title)
 
-      const sourceBlock = Array.isArray(topic.source_urls) && topic.source_urls.length > 0
-        ? `<h2>Nguồn tham khảo</h2><ul>${topic.source_urls.map((url: string) => `<li><a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a></li>`).join("")}</ul>`
-        : ""
-
       const { data: article, error: articleError } = await supabaseAdmin
         .from("articles")
         .insert([
           {
             slug,
             title: generated.title,
-            content: `${generated.content}${sourceBlock}`,
+            content: generated.content,
             excerpt: generated.excerpt || "",
             category: generated.category || "Du lịch",
             status: "draft",
