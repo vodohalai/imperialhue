@@ -243,8 +243,31 @@ serve(async (req) => {
         )
       }
 
-      const parsed = JSON.parse(aiData.choices?.[0]?.message?.content || "{}")
-      const topics = parsed.topics || []
+      // ─── Safe JSON parse for research ──────────────────────────
+      const rawContent = aiData.choices?.[0]?.message?.content || "{}"
+      let parsed: any = null
+
+      try {
+        parsed = JSON.parse(rawContent)
+      } catch (parseError) {
+        console.warn("[automation-run] Research JSON parse failed, trying cleanup", { error: parseError.message })
+        let cleaned = rawContent.trim()
+        if (cleaned.startsWith("```json")) cleaned = cleaned.slice(7)
+        if (cleaned.startsWith("```")) cleaned = cleaned.slice(3)
+        if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3)
+        try {
+          parsed = JSON.parse(cleaned)
+        } catch (secondError) {
+          console.error("[automation-run] Failed to parse research JSON after cleanup", { error: secondError.message })
+          await writeLog(supabaseAdmin, "research", "failed", "AI trả về JSON không hợp lệ", null, Date.now() - actionStart)
+          return new Response(
+            JSON.stringify({ success: false, message: "AI trả về JSON không hợp lệ." }),
+            { headers: jsonHeaders },
+          )
+        }
+      }
+
+      const topics = parsed?.topics || []
 
       console.log("[automation-run] Research result parsed", { topicsCount: topics.length })
 
@@ -408,7 +431,29 @@ LƯU Ý QUAN TRỌNG:
         )
       }
 
-      const generated = JSON.parse(aiData.choices?.[0]?.message?.content || "{}")
+      // ─── Safe JSON parse for write ─────────────────────────────
+      const rawWriteContent = aiData.choices?.[0]?.message?.content || "{}"
+      let generated: any = null
+
+      try {
+        generated = JSON.parse(rawWriteContent)
+      } catch (parseError) {
+        console.warn("[automation-run] Write JSON parse failed, trying cleanup", { error: parseError.message })
+        let cleaned = rawWriteContent.trim()
+        if (cleaned.startsWith("```json")) cleaned = cleaned.slice(7)
+        if (cleaned.startsWith("```")) cleaned = cleaned.slice(3)
+        if (cleaned.endsWith("```")) cleaned = cleaned.slice(0, -3)
+        try {
+          generated = JSON.parse(cleaned)
+        } catch (secondError) {
+          console.error("[automation-run] Failed to parse write JSON after cleanup", { error: secondError.message })
+          await writeLog(supabaseAdmin, "write", "failed", "AI trả về JSON không hợp lệ", null, Date.now() - actionStart)
+          return new Response(
+            JSON.stringify({ success: false, message: "AI trả về JSON không hợp lệ." }),
+            { headers: jsonHeaders },
+          )
+        }
+      }
 
       if (!generated?.title || !generated?.content) {
         console.error("[automation-run] AI returned incomplete article payload", { generated })
