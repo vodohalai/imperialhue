@@ -1,0 +1,1 @@
+SELECT id, mode, auto_publish, default_schedule_time, updated_at FROM workflow_controls WHERE workflow_key = 'blog_automation';
