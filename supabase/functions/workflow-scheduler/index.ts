@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-force-run',
 }
 
 const WORKFLOW_KEY = "blog_automation"
@@ -117,14 +117,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  // Đọc body để kiểm tra force flag (dùng cho nút "Chạy ngay")
-  let forceRun = false
-  try {
-    const body = await req.clone().json()
-    forceRun = body?.force === true
-  } catch (_) {
-    // body rỗng hoặc không phải JSON → không force
-  }
+  // Kiểm tra force flag qua header (dùng cho nút "Chạy ngay")
+  const forceRun = req.headers.get("x-force-run") === "true"
 
   try {
     const supabaseAdmin = createClient(

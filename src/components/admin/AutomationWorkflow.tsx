@@ -147,7 +147,7 @@ const AutomationWorkflow = () => {
     setRunningScheduler(true);
     try {
       const { data, error } = await supabase.functions.invoke("workflow-scheduler", {
-        body: { force: true },
+        headers: { "x-force-run": "true" },
       });
       if (error) {
         showError("Lỗi chạy scheduler: " + error.message);
