@@ -146,11 +146,20 @@ const AutomationWorkflow = () => {
     if (runningScheduler) return;
     setRunningScheduler(true);
     try {
-      const { data, error } = await supabase.functions.invoke("workflow-scheduler", {
-        headers: { "x-force-run": "true" },
-      });
-      if (error) {
-        showError("Lỗi chạy scheduler: " + error.message);
+      const response = await fetch(
+        "https://kbzobkzdzdqfqulfqoly.supabase.co/functions/v1/workflow-scheduler",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtiem9ia3pkemRxZnF1bGZxb2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTY1NDgsImV4cCI6MjA5MjY5MjU0OH0.m1M0qyPJSEvoo8e-Tr71v70ep6FsznZpKTOEHQ_jfMw`,
+            "x-force-run": "true",
+          },
+        }
+      );
+      const data = await response.json();
+      if (!response.ok) {
+        showError("Lỗi chạy scheduler: " + (data?.message || data?.error || response.statusText));
       } else if (data?.mode === "pipeline") {
         const successCount = data?.pipeline_results?.length || 0;
         const errorCount = data?.pipeline_errors?.length || 0;
