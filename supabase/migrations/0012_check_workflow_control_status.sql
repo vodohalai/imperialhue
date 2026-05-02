@@ -1,0 +1,1 @@
+SELECT * FROM workflow_controls WHERE workflow_key = 'blog_automation';

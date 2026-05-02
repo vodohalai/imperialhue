@@ -1,0 +1,1 @@
+SELECT id, action, status, message, created_at FROM workflow_logs WHERE action = 'scheduler' ORDER BY created_at DESC LIMIT 5;

@@ -6,13 +6,13 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtiem9ia3pkemRxZnF1bGZxb2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMTY1NDgsImV4cCI6MjA5MjY5MjU0OH0.m1M0qyPJSEvoo8e-Tr71v70ep6FsznZpKTOEHQ_jfMw";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Verify cron secret to prevent unauthorized calls
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${process.env.VERCEL_CRON_SECRET}`) {
-    return res.status(401).json({ error: "Unauthorized" });
+  // Chỉ chấp nhận POST để hạn chế truy cập ngẫu nhiên từ trình duyệt
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
+    console.log("[cron] Triggering workflow-scheduler...");
     const response = await fetch(WORKFLOW_SCHEDULER_URL, {
       method: "POST",
       headers: {
@@ -23,6 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const data = await response.json();
+    console.log("[cron] workflow-scheduler response:", JSON.stringify(data).slice(0, 400));
 
     return res.status(200).json({
       success: true,

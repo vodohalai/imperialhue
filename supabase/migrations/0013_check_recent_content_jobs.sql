@@ -1,0 +1,1 @@
+SELECT id, status, scheduled_for, title, article_id, created_at FROM ai_content_jobs ORDER BY created_at DESC LIMIT 10;
