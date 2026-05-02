@@ -160,20 +160,13 @@ const AutomationWorkflow = () => {
       const data = await response.json();
       if (!response.ok) {
         showError("Lỗi chạy scheduler: " + (data?.message || data?.error || response.statusText));
-      } else if (data?.mode === "pipeline") {
+      } else {
         const successCount = data?.pipeline_results?.length || 0;
         const errorCount = data?.pipeline_errors?.length || 0;
         if (errorCount === 0) {
           showSuccess(`Pipeline hoàn tất: ${successCount} bước thành công`);
         } else {
           showError(`Pipeline: ${successCount} bước OK, ${errorCount} bước lỗi`);
-        }
-      } else {
-        const published = data?.actions?.length || 0;
-        if (published > 0) {
-          showSuccess(`Đã xuất bản ${published} bài theo lịch`);
-        } else {
-          showSuccess("Đã chạy scheduler — không có bài nào đến hạn");
         }
       }
       await fetchLogs();
@@ -220,7 +213,7 @@ const AutomationWorkflow = () => {
       setRunningScheduler(true);
       try {
         const { data, error } = await supabase.functions.invoke("workflow-scheduler");
-        if (!error && data?.mode === "pipeline") {
+        if (!error) {
           const successCount = data?.pipeline_results?.length || 0;
           const errorCount = data?.pipeline_errors?.length || 0;
           if (errorCount === 0) {
@@ -228,8 +221,6 @@ const AutomationWorkflow = () => {
           } else {
             showError(`🤖 Tự động: ${successCount} bước OK, ${errorCount} bước lỗi`);
           }
-        } else if (!error && data?.actions?.length > 0) {
-          showSuccess(`🤖 Tự động: Đã xuất bản ${data.actions.length} bài theo lịch`);
         }
         await fetchLogs();
       } catch (_) {

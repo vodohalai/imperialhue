@@ -102,7 +102,7 @@ async function hasRunToday(supabaseAdmin): Promise<boolean> {
 
   if (error) {
     console.error("[workflow-scheduler] Error checking today's runs:", error.message)
-    return false // nếu lỗi thì vẫn cho chạy, tránh bỏ lỡ
+    return false
   }
 
   return (data?.length || 0) > 0
@@ -160,7 +160,7 @@ serve(async (req) => {
 
     console.log(`[workflow-scheduler] Schedule check: VN=${scheduleTime} → UTC=${String(targetUtc.h).padStart(2,"0")}:${String(targetUtc.m).padStart(2,"0")} | Now UTC=${String(now.getUTCHours()).padStart(2,"0")}:${String(now.getUTCMinutes()).padStart(2,"0")} | force=${forceRun}`)
 
-    // 4. Kiểm tra có đúng giờ không (bỏ qua nếu force)
+    // 4. Kiểm tra đúng giờ (bỏ qua nếu force)
     if (!forceRun && !isScheduleTime(now, targetUtc.h, targetUtc.m)) {
       const msg = `Chưa đến giờ chạy (hẹn: ${scheduleTime} giờ VN)`
       console.log(`[workflow-scheduler] ${msg}`)
@@ -180,92 +180,10 @@ serve(async (req) => {
       }
     }
 
-    // 6. Xử lý bài đến hạn trước
-    const results: string[] = []
-    const failedCount = { value: 0 }
-
-    const { data: dueJobs, error: dueJobsError } = await supabaseAdmin
-      .from('ai_content_jobs')
-      .select('*')
-      .eq('status', 'scheduled')
-      .lte('scheduled_for', nowIso)
-
-    if (dueJobsError) {
-      console.error("[workflow-scheduler] Failed to fetch scheduled jobs:", dueJobsError.message)
-      await writeLog(supabaseAdmin, "scheduler", "failed", dueJobsError.message)
-      return new Response(JSON.stringify({ error: dueJobsError.message }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    if (dueJobs && dueJobs.length > 0) {
-      console.log(`[workflow-scheduler] Publishing ${dueJobs.length} scheduled job(s)`)
-
-      for (const job of dueJobs) {
-        const publishedAt = new Date().toISOString()
-
-        const { error: updateJobError } = await supabaseAdmin
-          .from('ai_content_jobs')
-          .update({
-            status: 'published',
-            published_at: publishedAt,
-            updated_at: publishedAt,
-          })
-          .eq('id', job.id)
-
-        if (updateJobError) {
-          console.error("[workflow-scheduler] Failed to publish job:", { jobId: job.id, message: updateJobError.message })
-          failedCount.value++
-          continue
-        }
-
-        if (job.article_id) {
-          const { error: updateArticleError } = await supabaseAdmin
-            .from('articles')
-            .update({
-              status: 'published',
-              published_at: publishedAt,
-              updated_at: publishedAt,
-            })
-            .eq('id', job.article_id)
-
-          if (updateArticleError) {
-            console.error("[workflow-scheduler] Failed to publish article:", { articleId: job.article_id, message: updateArticleError.message })
-            failedCount.value++
-            continue
-          }
-        }
-
-        results.push(`Đã xuất bản bài theo lịch: ${job.title || job.id}`)
-      }
-    }
-
-    const durationMs = Date.now() - startTime
-    const totalJobs = dueJobs?.length || 0
-    const successCount = totalJobs - failedCount.value
-
-    if (totalJobs > 0) {
-      if (failedCount.value === 0) {
-        await writeLog(supabaseAdmin, "scheduler", "success", `Đã xuất bản ${successCount} bài`, { published: results, total: totalJobs, checked_at: nowIso }, durationMs)
-      } else {
-        await writeLog(supabaseAdmin, "scheduler", "success", `Đã xuất bản ${successCount}/${totalJobs} bài (${failedCount.value} lỗi)`, { published: results, total: totalJobs, failed: failedCount.value, checked_at: nowIso }, durationMs)
-      }
-
-      return new Response(JSON.stringify({
-        success: true,
-        actions: results,
-        timestamp: nowIso,
-        duration_ms: durationMs,
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // 7. Không có bài đến hạn → chạy pipeline đầy đủ
-    console.log(`[workflow-scheduler] No due jobs. Starting full pipeline: research → write → generate-image`)
+    // 6. Chạy pipeline: research → write → generate-image
+    console.log(`[workflow-scheduler] Starting pipeline: research → write → generate-image`)
     console.log(`[workflow-scheduler] auto_publish =`, autoPublish)
-    await writeLog(supabaseAdmin, "scheduler", "success", "Không có bài đến hạn — bắt đầu pipeline tự động", null, Date.now() - startTime)
+    await writeLog(supabaseAdmin, "scheduler", "success", "Bắt đầu pipeline tự động", { auto_publish: autoPublish, schedule_time_vn: scheduleTime }, Date.now() - startTime)
 
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     const pipelineResults: string[] = []
