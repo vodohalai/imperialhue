@@ -65,11 +65,65 @@ async function invokeAutomationAction(
   }
 }
 
+// ─── Helpers ─────────────────────────────────────────────────
+
+/** Chuyển giờ Việt Nam (UTC+7) sang giờ UTC */
+function vietnamToUtc(hours: number, minutes: number): { h: number; m: number } {
+  let utcH = hours - 7
+  if (utcH < 0) utcH += 24
+  return { h: utcH, m: minutes }
+}
+
+/** Kiểm tra xem thời gian hiện tại có khớp với giờ đăng không (±2 phút) */
+function isScheduleTime(now: Date, scheduleUtcH: number, scheduleUtcM: number): boolean {
+  const nowH = now.getUTCHours()
+  const nowM = now.getUTCMinutes()
+
+  if (nowH !== scheduleUtcH) return false
+
+  // Cho phép sai số ±2 phút vì cron chạy mỗi 5 phút
+  const diff = Math.abs(nowM - scheduleUtcM)
+  return diff <= 2
+}
+
+/** Kiểm tra hôm nay đã chạy pipeline thành công chưa */
+async function hasRunToday(supabaseAdmin): Promise<boolean> {
+  const todayStart = new Date()
+  todayStart.setUTCHours(0, 0, 0, 0)
+
+  const { data, error } = await supabaseAdmin
+    .from("workflow_logs")
+    .select("id")
+    .eq("workflow_key", WORKFLOW_KEY)
+    .eq("action", "scheduler")
+    .eq("status", "success")
+    .gte("created_at", todayStart.toISOString())
+    .limit(1)
+
+  if (error) {
+    console.error("[workflow-scheduler] Error checking today's runs:", error.message)
+    return false // nếu lỗi thì vẫn cho chạy, tránh bỏ lỡ
+  }
+
+  return (data?.length || 0) > 0
+}
+
+// ─── Main ────────────────────────────────────────────────────
+
 serve(async (req) => {
   const startTime = Date.now()
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
+  }
+
+  // Đọc body để kiểm tra force flag (dùng cho nút "Chạy ngay")
+  let forceRun = false
+  try {
+    const body = await req.clone().json()
+    forceRun = body?.force === true
+  } catch (_) {
+    // body rỗng hoặc không phải JSON → không force
   }
 
   try {
@@ -78,25 +132,63 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    // 1. Lấy trạng thái workflow
     const { data: control } = await supabaseAdmin
       .from('workflow_controls')
-      .select('mode, auto_publish')
+      .select('mode, auto_publish, default_schedule_time')
       .eq('workflow_key', WORKFLOW_KEY)
       .single()
 
-    const autoPublish = control?.auto_publish === true
+    if (!control) {
+      console.log("[workflow-scheduler] No workflow_controls row yet. Skipping.")
+      return new Response(JSON.stringify({ status: 'skipped', reason: 'no_control_row' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
 
-    if (control?.mode === 'paused') {
+    // 2. Nếu đang pause → skip (force vẫn bỏ qua pause)
+    if (control?.mode === 'paused' && !forceRun) {
       console.log("[workflow-scheduler] Workflow is paused. Skipping.")
-      await writeLog(supabaseAdmin, "scheduler", "skipped", "Workflow đang tạm dừng")
       return new Response(JSON.stringify({ status: 'skipped', reason: 'paused' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
+    const autoPublish = control?.auto_publish === true
+    const scheduleTime = control?.default_schedule_time || "08:00"
+
+    // 3. Parse giờ đăng (Việt Nam) → UTC
+    const [scheduleH, scheduleM] = scheduleTime.split(":").map(Number)
+    const targetUtc = vietnamToUtc(scheduleH, scheduleM)
+
+    const now = new Date()
+    const nowIso = now.toISOString()
+
+    console.log(`[workflow-scheduler] Schedule check: VN=${scheduleTime} → UTC=${String(targetUtc.h).padStart(2,"0")}:${String(targetUtc.m).padStart(2,"0")} | Now UTC=${String(now.getUTCHours()).padStart(2,"0")}:${String(now.getUTCMinutes()).padStart(2,"0")} | force=${forceRun}`)
+
+    // 4. Kiểm tra có đúng giờ không (bỏ qua nếu force)
+    if (!forceRun && !isScheduleTime(now, targetUtc.h, targetUtc.m)) {
+      const msg = `Chưa đến giờ chạy (hẹn: ${scheduleTime} giờ VN)`
+      console.log(`[workflow-scheduler] ${msg}`)
+      return new Response(JSON.stringify({ status: 'skipped', reason: 'not_time_yet', schedule_time_vn: scheduleTime }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // 5. Kiểm tra hôm nay đã chạy chưa (bỏ qua nếu force)
+    if (!forceRun) {
+      const alreadyRan = await hasRunToday(supabaseAdmin)
+      if (alreadyRan) {
+        console.log("[workflow-scheduler] Pipeline already ran today. Skipping.")
+        return new Response(JSON.stringify({ status: 'skipped', reason: 'already_ran_today' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // 6. Xử lý bài đến hạn trước
     const results: string[] = []
     const failedCount = { value: 0 }
-    const nowIso = new Date().toISOString()
 
     const { data: dueJobs, error: dueJobsError } = await supabaseAdmin
       .from('ai_content_jobs')
@@ -129,10 +221,7 @@ serve(async (req) => {
           .eq('id', job.id)
 
         if (updateJobError) {
-          console.error("[workflow-scheduler] Failed to publish job:", {
-            jobId: job.id,
-            message: updateJobError.message,
-          })
+          console.error("[workflow-scheduler] Failed to publish job:", { jobId: job.id, message: updateJobError.message })
           failedCount.value++
           continue
         }
@@ -148,10 +237,7 @@ serve(async (req) => {
             .eq('id', job.article_id)
 
           if (updateArticleError) {
-            console.error("[workflow-scheduler] Failed to publish article:", {
-              articleId: job.article_id,
-              message: updateArticleError.message,
-            })
+            console.error("[workflow-scheduler] Failed to publish article:", { articleId: job.article_id, message: updateArticleError.message })
             failedCount.value++
             continue
           }
@@ -182,9 +268,9 @@ serve(async (req) => {
       })
     }
 
-    // ─── Không có bài đến hạn → chạy pipeline từ đầu ──────────
-    console.log("[workflow-scheduler] No due jobs. Starting full pipeline: research → write → generate-image")
-    console.log("[workflow-scheduler] auto_publish =", autoPublish)
+    // 7. Không có bài đến hạn → chạy pipeline đầy đủ
+    console.log(`[workflow-scheduler] No due jobs. Starting full pipeline: research → write → generate-image`)
+    console.log(`[workflow-scheduler] auto_publish =`, autoPublish)
     await writeLog(supabaseAdmin, "scheduler", "success", "Không có bài đến hạn — bắt đầu pipeline tự động", null, Date.now() - startTime)
 
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -224,7 +310,7 @@ serve(async (req) => {
     const pipelineDurationMs = Date.now() - startTime
     await writeLog(supabaseAdmin, "scheduler", pipelineErrors.length === 0 ? "success" : "success",
       `Pipeline hoàn tất: ${pipelineResults.length}/${pipelineResults.length + pipelineErrors.length} bước thành công`,
-      { pipeline_results: pipelineResults, pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined, auto_publish: autoPublish },
+      { pipeline_results: pipelineResults, pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined, auto_publish: autoPublish, schedule_time_vn: scheduleTime },
       pipelineDurationMs
     )
 
@@ -234,6 +320,7 @@ serve(async (req) => {
       pipeline_results: pipelineResults,
       pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined,
       auto_publish: autoPublish,
+      schedule_time_vn: scheduleTime,
       timestamp: nowIso,
       duration_ms: pipelineDurationMs,
     }), {

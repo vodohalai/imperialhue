@@ -147,7 +147,9 @@ const AutomationWorkflow = () => {
     if (runningScheduler) return;
     setRunningScheduler(true);
     try {
-      const { data, error } = await supabase.functions.invoke("workflow-scheduler");
+      const { data, error } = await supabase.functions.invoke("workflow-scheduler", {
+        body: { force: true },
+      });
       if (error) {
         showError("Lỗi chạy scheduler: " + error.message);
       } else if (data?.mode === "pipeline") {
@@ -311,7 +313,7 @@ const AutomationWorkflow = () => {
             <button
               type="button"
               onClick={handleRunScheduler}
-              disabled={runningScheduler || isPaused}
+              disabled={runningScheduler}
               className="inline-flex items-center gap-2 rounded-full bg-[#6366f1] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#4f46e5] disabled:opacity-60"
             >
               {runningScheduler ? (
@@ -332,8 +334,8 @@ const AutomationWorkflow = () => {
             <CalendarClock className="h-6 w-6" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-bold text-slate-900">Giờ đăng mặc định</p>
-            <p className="mt-1 text-xs text-slate-500">Bài được duyệt sẽ tự động xuất bản vào giờ này mỗi ngày</p>
+            <p className="text-sm font-bold text-slate-900">Giờ đăng mặc định (GMT+7)</p>
+            <p className="mt-1 text-xs text-slate-500">Hệ thống tự động chạy pipeline đúng giờ này mỗi ngày. Cron kiểm tra mỗi 5 phút.</p>
           </div>
           <div className="flex items-center gap-2">
             <input
