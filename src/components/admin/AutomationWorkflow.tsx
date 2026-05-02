@@ -19,10 +19,6 @@ import type { WorkflowControl, WorkflowLog } from "@/integrations/supabase/types
 const WORKFLOW_KEY = "blog_automation";
 const AUTO_PILOT_STORAGE_KEY = "imperial-auto-pilot-enabled";
 
-type WorkflowWindow = Window & {
-  __workflowInterval?: ReturnType<typeof setInterval>;
-};
-
 const AutomationWorkflow = () => {
   const [control, setControl] = useState<WorkflowControl | null>(null);
   const [loadingControl, setLoadingControl] = useState(true);
@@ -38,6 +34,9 @@ const AutomationWorkflow = () => {
   const [runningScheduler, setRunningScheduler] = useState(false);
   const [logsCollapsed, setLogsCollapsed] = useState(false);
   const [columnCheckDone, setColumnCheckDone] = useState(false);
+
+  const workflowMode = control?.mode || "running";
+  const isPaused = workflowMode === "paused";
 
   // ── Đồng bộ auto_publish lên DB khi toggle ─────────────────
   const syncAutoPublishToDb = useCallback(async (enabled: boolean) => {
@@ -184,29 +183,62 @@ const AutomationWorkflow = () => {
     fetchLogs().catch(() => undefined);
   }, []);
 
-  // Auto-pilot interval
+  // ── Client-side scheduler: kiểm tra giờ mỗi 30s, tự động chạy đúng giờ ──
   useEffect(() => {
-    const workflowWindow = window as WorkflowWindow;
+    const LAST_AUTO_RUN_KEY = "imperial-last-auto-run-date";
 
-    if (workflowWindow.__workflowInterval) {
-      clearInterval(workflowWindow.__workflowInterval);
-      workflowWindow.__workflowInterval = undefined;
-    }
+    const checkAndRun = async () => {
+      if (!control || isPaused || runningScheduler) return;
 
-    if (autoMode) {
-      const intervalId = setInterval(() => {
-        fetchLogs().catch(() => undefined);
-      }, 3600000);
-      workflowWindow.__workflowInterval = intervalId;
-    }
+      const scheduleTime = control.default_schedule_time || "08:00";
+      const [scheduleH, scheduleM] = scheduleTime.split(":").map(Number);
 
-    return () => {
-      if (workflowWindow.__workflowInterval) {
-        clearInterval(workflowWindow.__workflowInterval);
-        workflowWindow.__workflowInterval = undefined;
+      const now = new Date();
+      const nowH = now.getHours();
+      const nowM = now.getMinutes();
+
+      // Khớp giờ (Việt Nam local time), cho phép sai số ±1 phút
+      if (nowH !== scheduleH || Math.abs(nowM - scheduleM) > 1) return;
+
+      // Kiểm tra hôm nay đã tự động chạy chưa
+      const today = now.toISOString().slice(0, 10);
+      const lastRun = localStorage.getItem(LAST_AUTO_RUN_KEY);
+      if (lastRun === today) return;
+
+      // Đánh dấu đã chạy hôm nay
+      localStorage.setItem(LAST_AUTO_RUN_KEY, today);
+
+      setRunningScheduler(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("workflow-scheduler");
+        if (!error && data?.mode === "pipeline") {
+          const successCount = data?.pipeline_results?.length || 0;
+          const errorCount = data?.pipeline_errors?.length || 0;
+          if (errorCount === 0) {
+            showSuccess(`🤖 Tự động: Pipeline hoàn tất — ${successCount} bước thành công`);
+          } else {
+            showError(`🤖 Tự động: ${successCount} bước OK, ${errorCount} bước lỗi`);
+          }
+        } else if (!error && data?.actions?.length > 0) {
+          showSuccess(`🤖 Tự động: Đã xuất bản ${data.actions.length} bài theo lịch`);
+        }
+        await fetchLogs();
+      } catch (_) {
+        // Bỏ qua lỗi, thử lại vào lần check sau
+        localStorage.removeItem(LAST_AUTO_RUN_KEY);
+      } finally {
+        setRunningScheduler(false);
       }
     };
-  }, [autoMode]);
+
+    // Check ngay khi mount
+    checkAndRun();
+
+    // Sau đó check mỗi 30 giây
+    const intervalId = setInterval(checkAndRun, 30_000);
+
+    return () => clearInterval(intervalId);
+  }, [control, isPaused, runningScheduler]);
 
   const saveScheduleTime = async (value: string) => {
     if (!control) return;
@@ -232,9 +264,6 @@ const AutomationWorkflow = () => {
     showSuccess(`Đã lưu giờ mặc định ${value}`);
     setSavingScheduleTime(false);
   };
-
-  const workflowMode = control?.mode || "running";
-  const isPaused = workflowMode === "paused";
 
   const handleToggleWorkflow = async () => {
     if (!control || savingMode) return;
