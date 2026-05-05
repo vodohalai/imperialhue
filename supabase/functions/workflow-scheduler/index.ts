@@ -108,6 +108,21 @@ async function hasRunToday(supabaseAdmin): Promise<boolean> {
   return (data?.length || 0) > 0
 }
 
+async function hasPendingTopic(supabaseAdmin): Promise<boolean> {
+  const { data, error } = await supabaseAdmin
+    .from("seo_topics")
+    .select("id")
+    .eq("status", "pending")
+    .limit(1)
+
+  if (error) {
+    console.error("[workflow-scheduler] Error checking pending topics:", error.message)
+    return false
+  }
+
+  return (data?.length || 0) > 0
+}
+
 // ─── Main ────────────────────────────────────────────────────
 
 serve(async (req) => {
@@ -183,56 +198,83 @@ serve(async (req) => {
     // 6. Chạy pipeline: research → write → generate-image
     console.log(`[workflow-scheduler] Starting pipeline: research → write → generate-image`)
     console.log(`[workflow-scheduler] auto_publish =`, autoPublish)
-    await writeLog(supabaseAdmin, "scheduler", "success", "Bắt đầu pipeline tự động", { auto_publish: autoPublish, schedule_time_vn: scheduleTime }, Date.now() - startTime)
+    await writeLog(supabaseAdmin, "scheduler", "running", "Bắt đầu pipeline tự động", { auto_publish: autoPublish, schedule_time_vn: scheduleTime }, Date.now() - startTime)
 
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     const pipelineResults: string[] = []
     const pipelineErrors: string[] = []
+    let writeSucceeded = false
+    let attemptedResearch = false
+    let skippedReason: string | null = null
 
-    // Step 1: Research
-    const researchResult = await invokeAutomationAction("research", serviceRoleKey)
-    if (researchResult.success) {
-      pipelineResults.push(`Research: tìm thấy ${researchResult.data.topics?.length || 0} chủ đề mới`)
-    } else {
-      pipelineErrors.push(`Research thất bại: ${researchResult.data?.message || researchResult.data?.error || "unknown"}`)
+    const pendingBefore = await hasPendingTopic(supabaseAdmin)
+    if (!pendingBefore) {
+      attemptedResearch = true
+      const researchResult = await invokeAutomationAction("research", serviceRoleKey)
+      if (researchResult.success) {
+        pipelineResults.push(`Research: tìm thấy ${researchResult.data.topics?.length || 0} chủ đề mới`)
+      } else {
+        pipelineErrors.push(`Research thất bại: ${researchResult.data?.message || researchResult.data?.error || "unknown"}`)
+      }
     }
 
-    // Step 2: Write (kèm auto_publish)
+    // Step 1: Write (kèm auto_publish)
     const writeExtra: Record<string, unknown> = {}
     if (autoPublish) {
       writeExtra.auto_publish = true
     }
 
-    const writeResult = await invokeAutomationAction("write", serviceRoleKey, writeExtra)
-    if (writeResult.success) {
-      const statusLabel = autoPublish ? "đã đăng" : "đã viết nháp"
-      pipelineResults.push(`Write: ${statusLabel} bài "${writeResult.data.article?.title || "không tên"}"`)
-    } else {
-      pipelineErrors.push(`Write thất bại: ${writeResult.data?.message || writeResult.data?.error || "unknown"}`)
+    let writeResult = await invokeAutomationAction("write", serviceRoleKey, writeExtra)
+    if (!writeResult.success) {
+      const msg = writeResult.data?.message || writeResult.data?.error || "unknown"
+      if (!attemptedResearch && msg.includes("Không còn chủ đề nào đang chờ")) {
+        attemptedResearch = true
+        const researchResult = await invokeAutomationAction("research", serviceRoleKey)
+        if (researchResult.success) {
+          pipelineResults.push(`Research: tìm thấy ${researchResult.data.topics?.length || 0} chủ đề mới`)
+        } else {
+          pipelineErrors.push(`Research thất bại: ${researchResult.data?.message || researchResult.data?.error || "unknown"}`)
+        }
+        writeResult = await invokeAutomationAction("write", serviceRoleKey, writeExtra)
+      }
     }
 
-    // Step 3: Generate Image
-    const imageResult = await invokeAutomationAction("generate-image", serviceRoleKey)
-    if (imageResult.success) {
-      pipelineResults.push(`Generate Image: đã tạo ảnh (nguồn: ${imageResult.data.image_source || "unknown"})`)
+    if (writeResult.success) {
+      writeSucceeded = true
+      const statusLabel = autoPublish ? "đã đăng" : "đã viết nháp"
+      pipelineResults.push(`Write: ${statusLabel} bài "${writeResult.data.article?.title || "không tên"}"`)
+
+      // Step 2: Generate Image
+      const imageResult = await invokeAutomationAction("generate-image", serviceRoleKey)
+      if (imageResult.success) {
+        pipelineResults.push(`Generate Image: đã tạo ảnh (nguồn: ${imageResult.data.image_source || "unknown"})`)
+      } else {
+        pipelineErrors.push(`Generate Image thất bại: ${imageResult.data?.message || imageResult.data?.error || "unknown"}`)
+      }
     } else {
-      pipelineErrors.push(`Generate Image thất bại: ${imageResult.data?.message || imageResult.data?.error || "unknown"}`)
+      const msg = writeResult.data?.message || writeResult.data?.error || "unknown"
+      if (msg.includes("Không còn chủ đề nào đang chờ")) {
+        skippedReason = "no_pending_topic"
+      }
+      pipelineErrors.push(`Write thất bại: ${msg}`)
     }
 
     const pipelineDurationMs = Date.now() - startTime
-    await writeLog(supabaseAdmin, "scheduler", pipelineErrors.length === 0 ? "success" : "success",
+    const schedulerStatus = writeSucceeded ? "success" : skippedReason ? "skipped" : "failed"
+    await writeLog(supabaseAdmin, "scheduler", schedulerStatus,
       `Pipeline hoàn tất: ${pipelineResults.length}/${pipelineResults.length + pipelineErrors.length} bước thành công`,
-      { pipeline_results: pipelineResults, pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined, auto_publish: autoPublish, schedule_time_vn: scheduleTime },
+      { pipeline_results: pipelineResults, pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined, auto_publish: autoPublish, schedule_time_vn: scheduleTime, skipped_reason: skippedReason || undefined },
       pipelineDurationMs
     )
 
     return new Response(JSON.stringify({
-      success: true,
+      success: writeSucceeded,
       mode: "pipeline",
       pipeline_results: pipelineResults,
       pipeline_errors: pipelineErrors.length > 0 ? pipelineErrors : undefined,
       auto_publish: autoPublish,
       schedule_time_vn: scheduleTime,
+      scheduler_status: schedulerStatus,
       timestamp: nowIso,
       duration_ms: pipelineDurationMs,
     }), {
